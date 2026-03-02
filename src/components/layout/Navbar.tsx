@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -38,7 +39,14 @@ export default function Navbar({ user }: NavbarProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Zap className="h-6 w-6 text-dp-orange" fill="currentColor" />
+          <Image
+            src="/door-parkour-logo.jpg"
+            alt="Door Parkour logo"
+            width={24}
+            height={24}
+            className="h-6 w-6 rounded-sm object-cover"
+            priority
+          />
           <span className="text-lg font-bold tracking-tight text-white">
             Door Parkour
           </span>
@@ -79,7 +87,7 @@ export default function Navbar({ user }: NavbarProps) {
                 size="sm"
                 variant="outline"
                 onClick={handleSignOut}
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
                 Sign Out
               </Button>
@@ -153,7 +161,7 @@ export default function Navbar({ user }: NavbarProps) {
                   size="sm"
                   variant="outline"
                   onClick={handleSignOut}
-                  className="w-full border-white/30 text-white hover:bg-white/10"
+                  className="w-full border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 >
                   Sign Out
                 </Button>

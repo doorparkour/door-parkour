@@ -63,7 +63,7 @@ export default function CartDrawer() {
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          className="relative border-white/30 text-white hover:bg-white/10 gap-2"
+          className="relative gap-2 border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
         >
           <ShoppingCart className="h-4 w-4" />
           Cart

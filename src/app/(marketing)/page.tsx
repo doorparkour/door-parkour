@@ -27,7 +27,7 @@ export default function HomePage() {
         />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 lg:py-40">
           <Badge className="mb-6 bg-dp-orange/20 text-dp-orange border-dp-orange/30 hover:bg-dp-orange/20">
-            Summer 2026 Classes Now Open
+            UPDATES COMING SOON
           </Badge>
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             Parkour coaching in{" "}
@@ -52,7 +52,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
                 About Your Coach
               </Button>
@@ -119,7 +119,7 @@ export default function HomePage() {
               {
                 icon: Calendar,
                 title: "Flexible Schedule",
-                desc: "Summer 2026 schedule across multiple days and times. Book individual sessions or commit to a series for the best results.",
+                desc: "Flexible scheduling across multiple days and times. Book individual sessions or commit to a series for the best results.",
               },
             ].map(({ icon: Icon, title, desc }) => (
               <Card
@@ -146,8 +146,8 @@ export default function HomePage() {
             Ready to start moving?
           </h2>
           <p className="mt-4 text-lg text-white/80">
-            Summer 2026 classes in Sturgeon Bay are filling up. Grab your spot
-            now.
+            Classes in Sturgeon Bay are launching soon. Updates and details are
+            coming soon.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link href="/signup">
@@ -162,7 +162,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white/10"
+                className="border-white bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
                 See the Schedule
               </Button>

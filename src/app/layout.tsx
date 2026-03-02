@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s | Door Parkour",
   },
   description:
-    "Door County's only ADAPT-certified parkour coaching — outdoor classes in Sturgeon Bay, WI. Summer 2026.",
+    "Door County's only ADAPT-certified parkour coaching — outdoor classes in Sturgeon Bay, WI.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://doorparkour.com"
   ),

@@ -51,10 +51,10 @@ export default async function MerchPage() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <ShoppingBag className="h-12 w-12 text-muted-foreground/50" />
               <h2 className="mt-4 text-xl font-semibold text-dp-teal">
-                Merch coming soon
+                Merch updates coming soon
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Check back soon for Door Parkour gear.
+                Check back for Door Parkour gear updates.
               </p>
             </div>
           ) : (

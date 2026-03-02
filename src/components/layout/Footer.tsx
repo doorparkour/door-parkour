@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -8,12 +8,18 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           <div>
             <Link href="/" className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-dp-orange" fill="currentColor" />
+              <Image
+                src="/door-parkour-logo.jpg"
+                alt="Door Parkour logo"
+                width={20}
+                height={20}
+                className="h-5 w-5 rounded-sm object-cover"
+              />
               <span className="font-bold tracking-tight">Door Parkour</span>
             </Link>
             <p className="mt-3 text-sm text-white/60">
               Door County&apos;s only ADAPT-certified parkour coaching.
-              Outdoor classes in Sturgeon Bay, WI — Summer 2026.
+              Outdoor classes in Sturgeon Bay, WI.
             </p>
           </div>
 

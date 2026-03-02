@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Zap, LayoutDashboard, Calendar, ShoppingBag, User } from "lucide-react";
+import { LayoutDashboard, Calendar, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -18,7 +19,13 @@ export default function DashboardSidebar() {
   return (
     <aside className="hidden w-60 shrink-0 border-r bg-white lg:flex lg:flex-col">
       <div className="flex h-16 items-center gap-2 border-b px-5">
-        <Zap className="h-5 w-5 text-dp-orange" fill="currentColor" />
+        <Image
+          src="/door-parkour-logo.jpg"
+          alt="Door Parkour logo"
+          width={20}
+          height={20}
+          className="h-5 w-5 rounded-sm object-cover"
+        />
         <Link
           href="/"
           className="text-sm font-bold text-dp-teal hover:text-dp-teal-light"

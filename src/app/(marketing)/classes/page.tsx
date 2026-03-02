@@ -7,7 +7,7 @@ import { CalendarX } from "lucide-react";
 export const metadata: Metadata = {
   title: "Classes",
   description:
-    "Browse Door Parkour's Summer 2026 outdoor class schedule in Sturgeon Bay, WI.",
+    "Browse Door Parkour's outdoor class schedule in Sturgeon Bay, WI.",
 };
 
 export const revalidate = 60;
@@ -31,7 +31,7 @@ export default async function ClassesPage() {
       <section className="bg-dp-teal py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Badge className="mb-4 bg-dp-orange/20 text-dp-orange border-dp-orange/30 hover:bg-dp-orange/20">
-            Summer 2026
+            Updates Coming Soon
           </Badge>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
             Upcoming Classes
@@ -53,7 +53,7 @@ export default async function ClassesPage() {
                 No upcoming classes posted yet
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Summer 2026 schedule coming soon. Check back shortly or{" "}
+                Class schedule updates coming soon. Check back or{" "}
                 <a
                   href="/contact"
                   className="text-dp-orange underline underline-offset-2"

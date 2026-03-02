@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Award, MapPin, BookOpen, Heart } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -34,47 +35,77 @@ export default function AboutPage() {
       {/* Bio */}
       <section className="bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
               <div className="aspect-square w-full max-w-md overflow-hidden rounded-2xl bg-dp-teal/10 flex items-center justify-center">
-                <span className="text-6xl">🏃</span>
+                <Image
+                  src="/selfie.png"
+                  alt="Coach portrait"
+                  width={768}
+                  height={768}
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
-            <div className="flex flex-col justify-center">
+            <div className="flex max-w-xl flex-col">
               <h2 className="text-3xl font-bold text-dp-teal">
                 Hi, I&apos;m your coach.
               </h2>
-              <p className="mt-4 text-muted-foreground">
-                I&apos;m a Sturgeon Bay native and the founder of Door Parkour —
-                Door County&apos;s first dedicated parkour coaching program.
-                After years of training and earning my ADAPT certification,
-                I&apos;m bringing structured, safe, and seriously fun parkour
-                coaching to the county I love.
+              <p className="mt-4 text-base leading-7 text-muted-foreground">
+                I founded Door Parkour to build Door County&apos;s first
+                dedicated parkour coaching program. I&apos;ve been training
+                parkour since 2010, and I&apos;ve been ADAPT Level 1 certified
+                since 2015.
               </p>
-              <p className="mt-4 text-muted-foreground">
-                ADAPT (Art du Déplacement and Parkour Teaching) is the gold
-                standard certification for parkour instructors. It means
-                I&apos;ve been trained not just to move well, but to teach
-                well — with an emphasis on safety, progression, and adapting
-                to each individual student.
+              <p className="mt-4 text-base leading-7 text-muted-foreground">
+                In Fall 2025, I started the Door County YMCA parkour program,
+                and I&apos;m currently working toward ADAPT Level 2 after
+                completing the Level 2 course in June 2025.
               </p>
-              <p className="mt-4 text-muted-foreground">
-                Door County&apos;s parks, shorelines, and urban spaces make
-                for incredible training environments. My classes are designed
-                to help you discover movement freedom in the places you
-                already love.
+              <p className="mt-4 text-base leading-7 text-muted-foreground">
+                I coach parkour to build community and share what parkour
+                culture has to offer. That means practicing core values like
+                cooperation, mutual respect, resilience, self-knowledge, and
+                non-competitive growth. My classes focus on safety,
+                progression, and adapting coaching to each student so you can
+                build confidence and movement freedom at your own pace.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <Badge className="bg-dp-teal/10 text-dp-teal border-dp-teal/20 hover:bg-dp-teal/10">
                   <Award className="mr-1.5 h-3 w-3" />
-                  ADAPT Certified
+                  ADAPT Level 1 (since 2015)
                 </Badge>
                 <Badge className="bg-dp-teal/10 text-dp-teal border-dp-teal/20 hover:bg-dp-teal/10">
                   <MapPin className="mr-1.5 h-3 w-3" />
                   Sturgeon Bay, WI
                 </Badge>
               </div>
+            </div>
+          </div>
+          <div className="mt-12">
+            <div className="mx-auto max-w-md">
+              <h3 className="text-lg font-semibold text-dp-teal">
+                ADAPT Level 1 Certificate
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Verified credential. Open the image for full-size viewing.
+              </p>
+              <a
+                href="/adapt-l1.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 block overflow-hidden rounded-xl border bg-white p-2 shadow-sm transition-shadow hover:shadow-md"
+                aria-label="Open ADAPT Level 1 certificate image"
+              >
+                <Image
+                  src="/adapt-l1.png"
+                  alt="ADAPT Level 1 certification"
+                  width={768}
+                  height={1086}
+                  className="h-auto w-full object-contain"
+                />
+              </a>
             </div>
           </div>
         </div>
@@ -123,7 +154,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-xl px-4">
           <h2 className="text-3xl font-bold">Ready to train?</h2>
           <p className="mt-3 text-white/70">
-            Summer 2026 classes in Sturgeon Bay. All levels. Small groups.
+            Classes in Sturgeon Bay. All levels. Small groups.
           </p>
           <div className="mt-6 flex justify-center gap-4">
             <Link href="/classes">
@@ -134,7 +165,7 @@ export default function AboutPage() {
             <Link href="/contact">
               <Button
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10"
+                className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
               >
                 Get in Touch
               </Button>
