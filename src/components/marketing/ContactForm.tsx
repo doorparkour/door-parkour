@@ -16,13 +16,24 @@ export default function ContactForm() {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: wire to an email service (Resend, SendGrid, etc.)
-    await new Promise((r) => setTimeout(r, 1000));
+    const form = e.target as HTMLFormElement;
+    const data = Object.fromEntries(new FormData(form));
 
-    toast.success("Message sent!", {
-      description: "I'll get back to you within 24 hours.",
+    const res = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
-    (e.target as HTMLFormElement).reset();
+
+    if (res.ok) {
+      toast.success("Message sent!", {
+        description: "I'll get back to you within 24 hours.",
+      });
+      form.reset();
+    } else {
+      toast.error("Something went wrong. Please try again.");
+    }
+
     setLoading(false);
   }
 
