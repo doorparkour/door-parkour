@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/client";
 export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [email, setEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,7 +43,7 @@ export default function SignUpForm() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       },
     });
 
@@ -50,8 +53,28 @@ export default function SignUpForm() {
       return;
     }
 
+    setEmail(email);
     setDone(true);
     setLoading(false);
+  }
+
+  async function handleResend() {
+    setResending(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    });
+    setResending(false);
+    if (error) {
+      toast.error("Couldn't resend email", { description: error.message });
+    } else {
+      setResent(true);
+      setTimeout(() => setResent(false), 5000);
+    }
   }
 
   if (done) {
@@ -60,9 +83,19 @@ export default function SignUpForm() {
         <CheckCircle className="h-12 w-12 text-green-500" />
         <h3 className="text-lg font-semibold text-dp-teal">Check your email</h3>
         <p className="text-sm text-muted-foreground">
-          We sent a confirmation link to your inbox. Click it to activate your
-          account, then sign in.
+          We sent a confirmation link to <strong>{email}</strong>. Click it to
+          activate your account, then sign in.
         </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleResend}
+          disabled={resending || resent}
+          className="mt-1"
+        >
+          {resending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {resent ? "Email sent!" : "Resend confirmation email"}
+        </Button>
       </div>
     );
   }
