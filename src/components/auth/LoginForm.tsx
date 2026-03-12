@@ -14,6 +14,8 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard";
   const [loading, setLoading] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,13 +29,64 @@ export default function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error("Sign in failed", { description: error.message });
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        setUnconfirmedEmail(email);
+      } else {
+        toast.error("Sign in failed", { description: error.message });
+      }
       setLoading(false);
       return;
     }
 
     router.push(redirectTo);
     router.refresh();
+  }
+
+  async function handleResend() {
+    if (!unconfirmedEmail) return;
+    setResending(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: unconfirmedEmail,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    });
+    setResending(false);
+    if (error) {
+      toast.error("Couldn't resend email", { description: error.message });
+    } else {
+      toast.success("Confirmation email resent!");
+    }
+  }
+
+  if (unconfirmedEmail) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <p className="text-sm font-medium text-dp-teal">Email not confirmed</p>
+        <p className="text-sm text-muted-foreground">
+          Please check your inbox for <strong>{unconfirmedEmail}</strong> and
+          click the confirmation link before signing in.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleResend}
+          disabled={resending}
+          className="mt-1"
+        >
+          {resending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Resend confirmation email
+        </Button>
+        <button
+          className="text-xs text-muted-foreground underline"
+          onClick={() => setUnconfirmedEmail(null)}
+        >
+          Back to sign in
+        </button>
+      </div>
+    );
   }
 
   return (
