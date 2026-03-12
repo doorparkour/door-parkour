@@ -87,11 +87,8 @@ export default function SignUpForm() {
           activate your account, then sign in.
         </p>
         <p className="text-xs text-muted-foreground">
-          Not seeing it? Check your spam, or{" "}
-          <a href="/login" className="underline">
-            sign in
-          </a>{" "}
-          if you already have an account.
+          Not seeing it? Check your spam. If you already have an account, a
+          sign-in link may have been sent instead.
         </p>
         <Button
           variant="outline"
