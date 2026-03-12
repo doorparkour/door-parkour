@@ -19,13 +19,13 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url")
+    .select("full_name, avatar_url, role")
     .eq("id", user.id)
     .single();
 
   return (
     <div className="flex min-h-screen bg-muted/20">
-      <DashboardSidebar />
+      <DashboardSidebar isAdmin={profile?.role === "admin"} />
       <div className="flex flex-1 flex-col">
         <DashboardHeader user={user} profile={profile} />
         <main className="flex-1 p-6 lg:p-8">{children}</main>

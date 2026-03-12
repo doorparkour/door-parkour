@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, ShoppingBag, User } from "lucide-react";
+import { LayoutDashboard, Calendar, ShoppingBag, User, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -13,7 +13,7 @@ const navItems = [
   { href: "/profile", icon: User, label: "Profile" },
 ];
 
-export default function DashboardSidebar() {
+export default function DashboardSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -52,7 +52,7 @@ export default function DashboardSidebar() {
         ))}
       </nav>
 
-      <div className="border-t p-3">
+      <div className="border-t p-3 space-y-1">
         <Link
           href="/classes"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-dp-orange hover:bg-dp-orange/10 transition-colors"
@@ -60,6 +60,15 @@ export default function DashboardSidebar() {
           <Calendar className="h-4 w-4" />
           Browse Classes
         </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Admin Panel
+          </Link>
+        )}
       </div>
     </aside>
   );
