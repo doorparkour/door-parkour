@@ -86,6 +86,13 @@ export default function SignUpForm() {
           We sent a confirmation link to <strong>{email}</strong>. Click it to
           activate your account, then sign in.
         </p>
+        <p className="text-xs text-muted-foreground">
+          Not seeing it? Check your spam, or{" "}
+          <a href="/login" className="underline">
+            sign in
+          </a>{" "}
+          if you already have an account.
+        </p>
         <Button
           variant="outline"
           size="sm"
