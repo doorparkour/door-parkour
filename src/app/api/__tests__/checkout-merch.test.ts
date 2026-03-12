@@ -87,12 +87,12 @@ describe("POST /api/checkout/merch", () => {
     expect(res.status).toBe(500);
   });
 
-  it("throws when a cart item references an unknown product", async () => {
+  it("returns 400 when a cart item references an unknown product", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
 
-    await expect(
-      POST(makeRequest({ items: [{ productId: "unknown-id", quantity: 1 }] }))
-    ).rejects.toThrow("Product unknown-id not found");
+    const res = await POST(makeRequest({ items: [{ productId: "unknown-id", quantity: 1 }] }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: "Product unknown-id not found" });
   });
 
   it("returns checkout URL on success", async () => {

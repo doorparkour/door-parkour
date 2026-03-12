@@ -35,9 +35,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to load products" }, { status: 500 });
   }
 
+  const missingId = items.find((i) => !products.find((p) => p.id === i.productId))?.productId;
+  if (missingId) {
+    return NextResponse.json({ error: `Product ${missingId} not found` }, { status: 400 });
+  }
+
   const lineItems = items.map((cartItem) => {
-    const product = products.find((p) => p.id === cartItem.productId);
-    if (!product) throw new Error(`Product ${cartItem.productId} not found`);
+    const product = products.find((p) => p.id === cartItem.productId)!;
 
     return {
       price_data: {
