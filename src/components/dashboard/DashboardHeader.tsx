@@ -23,7 +23,7 @@ interface DashboardHeaderProps {
   profile: { full_name: string | null; avatar_url: string | null } | null;
 }
 
-function getInitials(name: string | null | undefined, email: string) {
+function getInitials(name: string | null | undefined) {
   if (name) {
     const parts = name.trim().split(" ");
     return parts
@@ -32,7 +32,7 @@ function getInitials(name: string | null | undefined, email: string) {
       .join("")
       .toUpperCase();
   }
-  return email.slice(0, 2).toUpperCase();
+  return "?";
 }
 
 export default function DashboardHeader({ user, profile }: DashboardHeaderProps) {
@@ -68,7 +68,7 @@ export default function DashboardHeader({ user, profile }: DashboardHeaderProps)
             <Avatar className="h-8 w-8">
               <AvatarImage src={profile?.avatar_url ?? undefined} />
               <AvatarFallback className="bg-dp-teal text-white text-xs">
-                {getInitials(profile?.full_name, user.email ?? "")}
+                {getInitials(profile?.full_name)}
               </AvatarFallback>
             </Avatar>
             <span className="hidden text-sm font-medium text-foreground sm:block">

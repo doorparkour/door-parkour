@@ -37,14 +37,26 @@ export async function POST(request: Request) {
 
   const supabase = getAdminClient();
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const meta = session.metadata ?? {};
-
-    if (meta.type === "class_booking") {
-      await handleClassBooking(supabase, session, meta);
-    } else if (meta.type === "merch_order") {
-      await handleMerchOrder(supabase, session, meta);
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const meta = session.metadata ?? {};
+      if (meta.type === "class_booking") {
+        await handleClassBooking(supabase, session, meta);
+      } else if (meta.type === "merch_order") {
+        await handleMerchOrder(supabase, session, meta);
+      }
+      break;
+    }
+    case "payment_intent.payment_failed": {
+      const pi = event.data.object as Stripe.PaymentIntent;
+      await handlePaymentFailed(supabase, pi);
+      break;
+    }
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      await handleRefund(supabase, charge);
+      break;
     }
   }
 
@@ -127,4 +139,40 @@ async function handleMerchOrder(
   });
 
   await supabase.from("order_items").insert(orderItems);
+}
+
+async function handlePaymentFailed(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  pi: Stripe.PaymentIntent
+) {
+  await supabase
+    .from("bookings")
+    .update({ status: "payment_failed" })
+    .eq("stripe_payment_intent_id", pi.id);
+
+  await supabase
+    .from("orders")
+    .update({ status: "payment_failed" })
+    .eq("stripe_checkout_session_id", pi.latest_charge);
+}
+
+async function handleRefund(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  charge: Stripe.Charge
+) {
+  const paymentIntentId = charge.payment_intent as string;
+  const fullyRefunded = charge.amount_refunded === charge.amount;
+  const status = fullyRefunded ? "refunded" : "partially_refunded";
+
+  await supabase
+    .from("bookings")
+    .update({ status })
+    .eq("stripe_payment_intent_id", paymentIntentId);
+
+  await supabase
+    .from("orders")
+    .update({ status })
+    .eq("stripe_checkout_session_id", charge.metadata?.checkout_session_id);
 }

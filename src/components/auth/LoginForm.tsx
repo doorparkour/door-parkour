@@ -32,7 +32,14 @@ export default function LoginForm() {
       if (error.message.toLowerCase().includes("email not confirmed")) {
         setUnconfirmedEmail(email);
       } else {
-        toast.error("Sign in failed", { description: error.message });
+        const ERROR_MESSAGES: Record<string, string> = {
+          "invalid login credentials": "Incorrect email or password.",
+          "too many requests":
+            "Too many attempts. Please wait a moment and try again.",
+        };
+        const friendly =
+          ERROR_MESSAGES[error.message.toLowerCase()] ?? error.message;
+        toast.error("Sign in failed", { description: friendly });
       }
       setLoading(false);
       return;

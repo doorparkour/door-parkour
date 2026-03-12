@@ -7,6 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +33,7 @@ interface ProfileFormProps {
 export default function ProfileForm({ profile, email }: ProfileFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,6 +62,20 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       router.refresh();
     }
     setLoading(false);
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    const res = await fetch("/api/account/delete", { method: "DELETE" });
+    if (!res.ok) {
+      const { error } = await res.json();
+      toast.error("Failed to delete account", { description: error });
+      setDeleting(false);
+      return;
+    }
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
   }
 
   return (
@@ -145,6 +171,47 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Save Changes
       </Button>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-base text-destructive">
+            Danger Zone
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Permanently delete your account and all associated data — bookings,
+            orders, and profile info. This cannot be undone.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" disabled={deleting}>
+                {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Delete Account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete your account, all bookings, and
+                  all orders. There is no recovery option.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, delete my account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </form>
   );
 }
