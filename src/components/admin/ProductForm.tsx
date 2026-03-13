@@ -11,7 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -32,13 +34,11 @@ const MERCH_PRESETS = {
   },
 } as const;
 
-type MerchType = keyof typeof MERCH_PRESETS;
+const allNames = Object.values(MERCH_PRESETS).flatMap((p) => p.names);
+const multipleTypes = Object.keys(MERCH_PRESETS).length > 1;
 
-function inferMerchType(name: string): MerchType {
-  for (const [key, preset] of Object.entries(MERCH_PRESETS)) {
-    if ((preset.names as readonly string[]).includes(name)) return key as MerchType;
-  }
-  return "tshirt";
+function defaultName() {
+  return Object.values(MERCH_PRESETS)[0].names[0];
 }
 
 interface ProductFormProps {
@@ -47,13 +47,8 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ action, defaultValues }: ProductFormProps) {
-  const initialType = defaultValues?.name
-    ? inferMerchType(defaultValues.name)
-    : "tshirt";
-
-  const [merchType, setMerchType] = useState<MerchType>(initialType);
   const [selectedName, setSelectedName] = useState<string>(
-    defaultValues?.name ?? MERCH_PRESETS[initialType].names[0]
+    defaultValues?.name ?? defaultName()
   );
   const [priceValue, setPriceValue] = useState(
     defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
@@ -61,13 +56,6 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
   const [isOnDemand, setIsOnDemand] = useState(
     defaultValues?.on_demand ?? false
   );
-
-  const preset = MERCH_PRESETS[merchType];
-
-  function handleMerchTypeChange(value: MerchType) {
-    setMerchType(value);
-    setSelectedName(MERCH_PRESETS[value].names[0]);
-  }
 
   function handlePriceChange(e: React.ChangeEvent<HTMLInputElement>) {
     // Allow only digits and a single decimal point
@@ -102,32 +90,6 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
     <form action={formAction} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Product Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Merch Type</Label>
-            <Select
-              value={merchType}
-              onValueChange={(v) => handleMerchTypeChange(v as MerchType)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(MERCH_PRESETS).map(([key, { label }]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="text-base">Product Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -138,11 +100,22 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {preset.names.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
+                {multipleTypes
+                  ? Object.values(MERCH_PRESETS).map((preset) => (
+                      <SelectGroup key={preset.label}>
+                        <SelectLabel>{preset.label}</SelectLabel>
+                        {preset.names.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))
+                  : allNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
               </SelectContent>
             </Select>
           </div>
