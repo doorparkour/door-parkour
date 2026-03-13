@@ -64,17 +64,13 @@ export default function ClassCard({ cls }: ClassCardProps) {
 
   return (
     <Card className="flex flex-col overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-      <div className="h-40 bg-gradient-to-br from-dp-teal to-dp-teal-light flex items-center justify-center overflow-hidden">
-        {cls.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={cls.image_url}
-            alt={cls.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="text-4xl">🏃</span>
-        )}
+      <div className="h-40 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={cls.image_url ?? "/door-parkour-banner.jpg"}
+          alt={cls.title}
+          className="h-full w-full object-cover object-center"
+        />
       </div>
 
       <CardContent className="flex-1 pt-5 space-y-3">

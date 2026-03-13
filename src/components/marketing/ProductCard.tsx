@@ -38,17 +38,13 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <Card className="flex flex-col overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-      <div className="aspect-square bg-gradient-to-br from-dp-teal/10 to-dp-orange/10 flex items-center justify-center overflow-hidden">
-        {product.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="text-5xl">👕</span>
-        )}
+      <div className="aspect-square overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={product.image_url ?? "/door-parkour-banner.jpg"}
+          alt={product.name}
+          className="h-full w-full object-cover object-center"
+        />
       </div>
 
       <CardContent className="flex-1 pt-4 space-y-2">

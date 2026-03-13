@@ -7,6 +7,7 @@ import CancelBookingButton from "@/components/dashboard/CancelBookingButton";
 import { CalendarX, MapPin, Clock } from "lucide-react";
 import Link from "next/link";
 
+
 export const metadata: Metadata = { title: "My Bookings" };
 
 const statusColors: Record<string, string> = {
@@ -29,18 +30,11 @@ export default async function BookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-dp-teal">My Bookings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            All your class bookings in one place.
-          </p>
-        </div>
-        <Link href="/classes">
-          <Button className="bg-dp-orange text-white hover:bg-dp-orange-dark">
-            Book a Class
-          </Button>
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-dp-teal">My Bookings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          All your class bookings in one place.
+        </p>
       </div>
 
       {!bookings || bookings.length === 0 ? (

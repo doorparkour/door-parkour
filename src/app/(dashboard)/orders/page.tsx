@@ -36,18 +36,11 @@ export default async function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-dp-teal">My Orders</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your merch order history.
-          </p>
-        </div>
-        <Link href="/merch">
-          <Button className="bg-dp-orange text-white hover:bg-dp-orange-dark">
-            Shop Merch
-          </Button>
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-dp-teal">My Orders</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your merch order history.
+        </p>
       </div>
 
       {!orders || orders.length === 0 ? (
