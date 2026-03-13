@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createClass,
   updateClass,
+  deleteClass,
   createProduct,
   updateProduct,
+  deleteProduct,
 } from "@/lib/actions/admin";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
@@ -27,9 +29,11 @@ import { revalidatePath } from "next/cache";
 
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
 const mockEq = vi.fn();
 
 mockUpdate.mockReturnValue({ eq: mockEq });
+mockDelete.mockReturnValue({ eq: mockEq });
 
 function makeSupabase({
   user = { id: "user-1" } as object | null,
@@ -54,6 +58,7 @@ function makeSupabase({
       }),
       insert: mockInsert,
       update: mockUpdate,
+      delete: mockDelete,
     }),
   };
 }
@@ -94,6 +99,7 @@ function productFormData(overrides: Record<string, string> = {}): FormData {
 beforeEach(() => {
   vi.clearAllMocks();
   mockUpdate.mockReturnValue({ eq: mockEq });
+  mockDelete.mockReturnValue({ eq: mockEq });
 });
 
 // ── requireAdmin guard (tested via createClass) ───────────────
@@ -262,5 +268,43 @@ describe("updateProduct", () => {
       expect.objectContaining({ name: "Door Parkour Tee", price_cents: 2500, is_active: true })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
+  });
+});
+
+// ── deleteClass ───────────────────────────────────────────────
+
+describe("deleteClass", () => {
+  it("throws when DB delete fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ dbError: { message: "foreign key violation" } }) as never
+    );
+    await expect(deleteClass("class-1")).rejects.toThrow("foreign key violation");
+  });
+
+  it("targets correct record and revalidates both paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(deleteClass("class-1")).rejects.toThrow("REDIRECT:/admin/classes");
+    expect(mockEq).toHaveBeenCalledWith("id", "class-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/classes");
+    expect(revalidatePath).toHaveBeenCalledWith("/classes");
+  });
+});
+
+// ── deleteProduct ─────────────────────────────────────────────
+
+describe("deleteProduct", () => {
+  it("throws when DB delete fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ dbError: { message: "foreign key violation" } }) as never
+    );
+    await expect(deleteProduct("prod-1")).rejects.toThrow("foreign key violation");
+  });
+
+  it("targets correct record and revalidates both paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(deleteProduct("prod-1")).rejects.toThrow("REDIRECT:/admin/products");
+    expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
+    expect(revalidatePath).toHaveBeenCalledWith("/merch");
   });
 });
