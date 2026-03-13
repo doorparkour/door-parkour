@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient as createServerClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+import { render } from "@react-email/components";
+import { BookingConfirmationEmail } from "@/lib/email/BookingConfirmationEmail";
 import type Stripe from "stripe";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Use service-role client for webhook (bypasses RLS)
 function getAdminClient() {
@@ -98,6 +103,48 @@ async function handleClassBooking(
       status: "confirmed",
       stripe_payment_intent_id: session.payment_intent as string,
     });
+  }
+
+  // Send booking confirmation email
+  const customerEmail = session.customer_email;
+  if (customerEmail) {
+    const { data: cls } = await supabase
+      .from("classes")
+      .select("title, starts_at, location, duration_mins, price_cents")
+      .eq("id", class_id)
+      .single();
+
+    if (cls) {
+      const classDate = new Intl.DateTimeFormat("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/Chicago",
+      }).format(new Date(cls.starts_at));
+
+      const priceDollars = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(cls.price_cents / 100);
+
+      await resend.emails.send({
+        from: "Door Parkour <noreply@doorparkour.com>",
+        to: customerEmail,
+        subject: `Booking Confirmed: ${cls.title}`,
+        html: await render(
+          BookingConfirmationEmail({
+            className: cls.title,
+            classDate,
+            location: cls.location,
+            durationMins: cls.duration_mins,
+            priceDollars,
+          })
+        ),
+      });
+    }
   }
 }
 

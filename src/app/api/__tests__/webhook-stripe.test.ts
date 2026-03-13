@@ -3,6 +3,8 @@ import { POST } from "../webhooks/stripe/route";
 
 vi.mock("@/lib/stripe/server", () => ({ getStripe: vi.fn() }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(function () { return { emails: { send: vi.fn().mockResolvedValue({}) } }; }) }));
+vi.mock("@react-email/components", () => ({ render: vi.fn().mockResolvedValue("<html/>") }));
 
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@supabase/supabase-js";

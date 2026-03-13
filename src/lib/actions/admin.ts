@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getStripe } from "@/lib/stripe/server";
 import { Resend } from "resend";
+import { render } from "@react-email/components";
+import { ClassCancellationEmail } from "@/lib/email/ClassCancellationEmail";
+import { ClassCancellationAdminEmail } from "@/lib/email/ClassCancellationAdminEmail";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -138,28 +141,42 @@ export async function cancelClass(id: string) {
       timeZone: "America/Chicago",
     }).format(new Date(cls.starts_at));
 
+    // Fetch participant emails and send cancellation notifications
+    const participantDetails: Array<{ email: string; refunded: boolean }> = [];
+
     await Promise.allSettled(
       bookings.map(async (b) => {
         const { data: userData } = await adminSupabase.auth.admin.getUserById(b.user_id);
         const email = userData?.user?.email;
         if (!email) return;
 
-        const wasConfirmed = b.status === "confirmed" && b.stripe_payment_intent_id;
+        const wasRefunded = b.status === "confirmed" && !!b.stripe_payment_intent_id;
+        participantDetails.push({ email, refunded: wasRefunded });
+
         return resend.emails.send({
           from: "Door Parkour <noreply@doorparkour.com>",
           to: email,
           subject: `Class Cancelled: ${cls.title}`,
-          html: `
-            <p>Hi there,</p>
-            <p>We're sorry to let you know that the following class has been cancelled:</p>
-            <p><strong>${cls.title}</strong><br/>${classDate}</p>
-            ${wasConfirmed ? `<p>A full refund has been issued to your original payment method. Please allow 5–10 business days for it to appear.</p>` : ""}
-            <p>We hope to see you at a future class. Questions? Reply to this email or visit <a href="https://doorparkour.com/contact">doorparkour.com/contact</a>.</p>
-            <p>— The Door Parkour Team</p>
-          `,
+          html: await render(
+            ClassCancellationEmail({ className: cls.title, classDate, wasRefunded })
+          ),
         });
       })
     );
+
+    // Admin summary email
+    await resend.emails.send({
+      from: "Door Parkour <noreply@doorparkour.com>",
+      to: "steven@doorparkour.com",
+      subject: `[Admin] Class Cancelled: ${cls.title}`,
+      html: await render(
+        ClassCancellationAdminEmail({
+          className: cls.title,
+          classDate,
+          participants: participantDetails,
+        })
+      ),
+    });
   }
 
   revalidatePath("/admin/classes");
