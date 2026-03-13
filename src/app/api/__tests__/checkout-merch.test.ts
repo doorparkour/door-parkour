@@ -10,8 +10,9 @@ import { getStripe } from "@/lib/stripe/server";
 const mockSessionCreate = vi.fn();
 
 const products = [
-  { id: "prod-1", name: "T-Shirt", description: null, image_url: null, price_cents: 2500 },
-  { id: "prod-2", name: "Hoodie", description: "Warm", image_url: null, price_cents: 5000 },
+  { id: "prod-1", name: "Door Parkour Tee", description: null, image_url: null, price_cents: 2500, inventory: 10, on_demand: false },
+  { id: "prod-2", name: "Hoodie", description: "Warm", image_url: null, price_cents: 5000, inventory: 0, on_demand: true },
+  { id: "prod-3", name: "Hat", description: null, image_url: null, price_cents: 1500, inventory: 0, on_demand: false },
 ];
 
 function makeRequest(body: object) {
@@ -95,6 +96,23 @@ describe("POST /api/checkout/merch", () => {
     expect(await res.json()).toMatchObject({ error: "Product unknown-id not found" });
   });
 
+  it("returns 400 when a limited-supply product is out of stock", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+
+    // prod-3 has inventory=0 and on_demand=false
+    const res = await POST(makeRequest({ items: [{ productId: "prod-3", quantity: 1 }] }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: expect.stringContaining("out of stock") });
+  });
+
+  it("allows checkout when on-demand product has zero inventory", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+
+    // prod-2 has inventory=0 but on_demand=true — should still proceed
+    const res = await POST(makeRequest({ items: [{ productId: "prod-2", quantity: 1 }] }));
+    expect(res.status).toBe(200);
+  });
+
   it("returns checkout URL on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
 
@@ -107,6 +125,7 @@ describe("POST /api/checkout/merch", () => {
 
   it("passes correct metadata to Stripe", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    // prod-1: in-stock limited-supply product
     const items = [{ productId: "prod-1", quantity: 1 }];
 
     await POST(makeRequest({ items }));

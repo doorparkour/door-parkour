@@ -215,6 +215,24 @@ describe("createProduct", () => {
     );
   });
 
+  it("persists on_demand: true when toggled on", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createProduct(productFormData({ on_demand: "on" }))
+    ).rejects.toThrow("REDIRECT:/admin/products");
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ on_demand: true })
+    );
+  });
+
+  it("persists on_demand: false when not set", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(createProduct(productFormData())).rejects.toThrow("REDIRECT:/admin/products");
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ on_demand: false })
+    );
+  });
+
   it("revalidates both paths on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(createProduct(productFormData())).rejects.toThrow("REDIRECT:");
