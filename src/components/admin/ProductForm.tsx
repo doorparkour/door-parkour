@@ -22,14 +22,24 @@ import type { Database } from "@/lib/supabase/types";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 
-// Add new merch types here as the catalog grows
+// Add new merch types here as the catalog grows.
+// Apparel types will eventually support a size selector (S/M/L/XL/XXL).
+// Accessories are single-SKU and won't need sizes.
 const MERCH_PRESETS = {
-  tshirt: {
-    label: "T-Shirt",
+  apparel: {
+    label: "Apparel",
     names: [
-      "Door Parkour Tee",
-      "Door Parkour Classic Tee",
-      "Door Parkour Long Sleeve Tee",
+      "Door Parkour T-Shirt",
+      "Door Parkour Long-Sleeve Shirt",
+      "Door Parkour Pullover Hoodie",
+      "Door Parkour Zipped Hoodie",
+    ],
+  },
+  accessories: {
+    label: "Accessories",
+    names: [
+      "Door Parkour String Bag",
+      "Door Parkour Water Bottle",
     ],
   },
 } as const;

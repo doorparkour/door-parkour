@@ -85,11 +85,11 @@ function classFormData(overrides: Record<string, string> = {}): FormData {
 function productFormData(overrides: Record<string, string> = {}): FormData {
   const fd = new FormData();
   const defaults: Record<string, string> = {
-    name: "Door Parkour Tee",
+    name: "Door Parkour T-Shirt",
     description: "Comfy",
     price: "25.00",
     inventory: "10",
-    slug: "door-parkour-tee",
+    slug: "door-parkour-t-shirt",
     image_url: "",
     ...overrides,
   };
@@ -214,8 +214,8 @@ describe("createProduct", () => {
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "Door Parkour Tee",
-        slug: "door-parkour-tee",
+        name: "Door Parkour T-Shirt",
+        slug: "door-parkour-t-shirt",
         price_cents: 2500,
         inventory: 10,
         is_active: true,
@@ -277,7 +277,7 @@ describe("updateProduct", () => {
       updateProduct("prod-1", productFormData({ is_active: "on" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Door Parkour Tee", price_cents: 2500, is_active: true })
+      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, is_active: true })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
   });
