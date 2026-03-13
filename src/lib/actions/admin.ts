@@ -30,6 +30,7 @@ export async function createClass(formData: FormData) {
   const { error } = await supabase.from("classes").insert({
     title: formData.get("title") as string,
     description: (formData.get("description") as string) || null,
+    image_url: (formData.get("image_url") as string) || null,
     location: formData.get("location") as string,
     starts_at: formData.get("starts_at") as string,
     duration_mins: parseInt(formData.get("duration_mins") as string),
@@ -54,6 +55,7 @@ export async function updateClass(id: string, formData: FormData) {
     .update({
       title: formData.get("title") as string,
       description: (formData.get("description") as string) || null,
+      image_url: (formData.get("image_url") as string) || null,
       location: formData.get("location") as string,
       starts_at: formData.get("starts_at") as string,
       duration_mins: parseInt(formData.get("duration_mins") as string),
@@ -76,6 +78,7 @@ export async function createProduct(formData: FormData) {
   const supabase = await requireAdmin();
 
   const inventoryRaw = formData.get("inventory") as string;
+  const onDemand = formData.get("on_demand") === "on";
   const { error } = await supabase.from("products").insert({
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
@@ -84,6 +87,7 @@ export async function createProduct(formData: FormData) {
     slug: formData.get("slug") as string,
     image_url: (formData.get("image_url") as string) || null,
     is_active: formData.get("is_active") === "on",
+    on_demand: onDemand,
   });
 
   if (error) throw new Error(error.message);
@@ -97,6 +101,7 @@ export async function updateProduct(id: string, formData: FormData) {
   const supabase = await requireAdmin();
 
   const inventoryRaw = formData.get("inventory") as string;
+  const onDemand = formData.get("on_demand") === "on";
   const { error } = await supabase
     .from("products")
     .update({
@@ -107,6 +112,7 @@ export async function updateProduct(id: string, formData: FormData) {
       slug: formData.get("slug") as string,
       image_url: (formData.get("image_url") as string) || null,
       is_active: formData.get("is_active") === "on",
+      on_demand: onDemand,
     })
     .eq("id", id);
 

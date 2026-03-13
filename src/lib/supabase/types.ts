@@ -142,6 +142,7 @@ export type Database = {
           inventory: number;
           slug: string;
           is_active: boolean;
+          on_demand: boolean;
           created_at: string;
         };
         Insert: {
@@ -153,6 +154,7 @@ export type Database = {
           inventory?: number;
           slug: string;
           is_active?: boolean;
+          on_demand?: boolean;
           created_at?: string;
         };
         Update: {
@@ -164,6 +166,7 @@ export type Database = {
           inventory?: number;
           slug?: string;
           is_active?: boolean;
+          on_demand?: boolean;
         };
         Relationships: [];
       };

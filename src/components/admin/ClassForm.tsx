@@ -54,6 +54,17 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="image_url">Image URL</Label>
+            <Input
+              id="image_url"
+              name="image_url"
+              type="url"
+              defaultValue={defaultValues?.image_url ?? ""}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"

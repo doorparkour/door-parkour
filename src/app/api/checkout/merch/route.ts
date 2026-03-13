@@ -40,6 +40,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Product ${missingId} not found` }, { status: 400 });
   }
 
+  const outOfStockId = items.find((i) => {
+    const p = products.find((p) => p.id === i.productId)!;
+    return !p.on_demand && p.inventory === 0;
+  })?.productId;
+  if (outOfStockId) {
+    return NextResponse.json({ error: `Product ${outOfStockId} is out of stock` }, { status: 400 });
+  }
+
   const lineItems = items.map((cartItem) => {
     const product = products.find((p) => p.id === cartItem.productId)!;
 

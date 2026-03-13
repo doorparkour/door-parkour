@@ -58,6 +58,9 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
   const [priceValue, setPriceValue] = useState(
     defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
   );
+  const [isOnDemand, setIsOnDemand] = useState(
+    defaultValues?.on_demand ?? false
+  );
 
   const preset = MERCH_PRESETS[merchType];
 
@@ -197,33 +200,47 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="inventory">
-                Inventory{" "}
-                <span className="text-xs text-muted-foreground font-normal">
-                  (optional — leave blank for on-demand)
-                </span>
-              </Label>
-              <Input
-                id="inventory"
-                name="inventory"
-                type="number"
-                min={0}
-                defaultValue={defaultValues?.inventory ?? ""}
-                placeholder="—"
-              />
-            </div>
+
+            {!isOnDemand && (
+              <div className="space-y-2">
+                <Label htmlFor="inventory">Inventory</Label>
+                <Input
+                  id="inventory"
+                  name="inventory"
+                  type="number"
+                  min={0}
+                  defaultValue={defaultValues?.inventory ?? ""}
+                  placeholder="0"
+                />
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
-            <Checkbox
-              id="is_active"
-              name="is_active"
-              defaultChecked={defaultValues?.is_active ?? true}
-            />
-            <Label htmlFor="is_active" className="font-normal cursor-pointer">
-              Active (visible in store)
-            </Label>
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="on_demand"
+                name="on_demand"
+                checked={isOnDemand}
+                onCheckedChange={(v) => setIsOnDemand(!!v)}
+              />
+              <Label htmlFor="on_demand" className="font-normal cursor-pointer">
+                On-demand{" "}
+                <span className="text-xs text-muted-foreground">
+                  (no inventory tracking, always orderable)
+                </span>
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is_active"
+                name="is_active"
+                defaultChecked={defaultValues?.is_active ?? true}
+              />
+              <Label htmlFor="is_active" className="font-normal cursor-pointer">
+                Active (visible in store)
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>

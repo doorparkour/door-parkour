@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Users, Loader2 } from "lucide-react";
+import { MapPin, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
@@ -64,9 +64,17 @@ export default function ClassCard({ cls }: ClassCardProps) {
 
   return (
     <Card className="flex flex-col overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-      {/* Image placeholder */}
-      <div className="h-40 bg-gradient-to-br from-dp-teal to-dp-teal-light flex items-center justify-center">
-        <span className="text-4xl">🏃</span>
+      <div className="h-40 bg-gradient-to-br from-dp-teal to-dp-teal-light flex items-center justify-center overflow-hidden">
+        {cls.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cls.image_url}
+            alt={cls.title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-4xl">🏃</span>
+        )}
       </div>
 
       <CardContent className="flex-1 pt-5 space-y-3">
@@ -97,10 +105,6 @@ export default function ClassCard({ cls }: ClassCardProps) {
           <span className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-dp-orange shrink-0" />
             {cls.location}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-dp-orange shrink-0" />
-            {cls.capacity - cls.spots_remaining}/{cls.capacity} registered
           </span>
         </div>
       </CardContent>
