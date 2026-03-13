@@ -38,12 +38,13 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <Card className="flex flex-col overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-      <div className="aspect-square overflow-hidden">
+      <div className="h-40 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={product.image_url ?? "/door-parkour-banner.jpg"}
+          src={product.image_url || "/door-parkour-banner.jpg"}
           alt={product.name}
           className="h-full w-full object-cover object-center"
+          onError={(e) => { e.currentTarget.src = "/door-parkour-banner.jpg"; }}
         />
       </div>
 

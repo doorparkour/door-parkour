@@ -93,9 +93,10 @@ export default function CartDrawer() {
                   <div className="h-16 w-16 rounded-md overflow-hidden shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={item.image_url ?? "/door-parkour-banner.jpg"}
+                      src={item.image_url || "/door-parkour-banner.jpg"}
                       alt={item.name}
                       className="h-full w-full object-cover object-center"
+                      onError={(e) => { e.currentTarget.src = "/door-parkour-banner.jpg"; }}
                     />
                   </div>
                   <div className="flex-1 min-w-0">

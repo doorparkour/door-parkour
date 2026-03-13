@@ -67,9 +67,10 @@ export default function ClassCard({ cls }: ClassCardProps) {
       <div className="h-40 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={cls.image_url ?? "/door-parkour-banner.jpg"}
+          src={cls.image_url || "/door-parkour-banner.jpg"}
           alt={cls.title}
           className="h-full w-full object-cover object-center"
+          onError={(e) => { e.currentTarget.src = "/door-parkour-banner.jpg"; }}
         />
       </div>
 
