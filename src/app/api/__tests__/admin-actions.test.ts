@@ -283,7 +283,7 @@ describe("deleteClass", () => {
 
   it("targets correct record and revalidates both paths on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(deleteClass("class-1")).rejects.toThrow("REDIRECT:/admin/classes");
+    await deleteClass("class-1");
     expect(mockEq).toHaveBeenCalledWith("id", "class-1");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/classes");
     expect(revalidatePath).toHaveBeenCalledWith("/classes");
@@ -302,7 +302,7 @@ describe("deleteProduct", () => {
 
   it("targets correct record and revalidates both paths on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(deleteProduct("prod-1")).rejects.toThrow("REDIRECT:/admin/products");
+    await deleteProduct("prod-1");
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
     expect(revalidatePath).toHaveBeenCalledWith("/merch");

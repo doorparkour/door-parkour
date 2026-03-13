@@ -55,7 +55,6 @@ export async function deleteClass(id: string) {
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
-  redirect("/admin/classes");
 }
 
 export async function updateClass(id: string, formData: FormData) {
@@ -116,7 +115,6 @@ export async function deleteProduct(id: string) {
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
-  redirect("/admin/products");
 }
 
 export async function updateProduct(id: string, formData: FormData) {
