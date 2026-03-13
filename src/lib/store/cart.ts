@@ -74,6 +74,16 @@ export const useCart = create<CartStore>()(
         );
       },
     }),
-    { name: "dp-cart" }
+    {
+      name: "dp-cart",
+      version: 1,
+      migrate(persistedState, version) {
+        if (version < 1) {
+          // CartItem gained inventory + on_demand in v1 — clear stale carts
+          return { items: [] };
+        }
+        return persistedState as CartStore;
+      },
+    }
   )
 );
