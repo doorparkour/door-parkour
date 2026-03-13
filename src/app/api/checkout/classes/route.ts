@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     .select("*")
     .eq("id", classId)
     .eq("is_published", true)
+    .eq("is_cancelled", false)
     .single();
 
   if (classError || !cls) {

@@ -19,6 +19,7 @@ export default async function ClassesPage() {
     .from("classes")
     .select("*")
     .eq("is_published", true)
+    .eq("is_cancelled", false)
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });
 

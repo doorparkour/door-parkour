@@ -29,8 +29,9 @@ export default function DeleteButton({ action, label }: DeleteButtonProps) {
     startTransition(async () => {
       try {
         await action();
-      } catch {
-        toast.error(`Failed to delete ${label}`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : `Failed to delete ${label}`;
+        toast.error(`Failed to delete ${label}`, { description: message });
         setOpen(false);
       }
     });

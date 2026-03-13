@@ -60,6 +60,8 @@ export type Database = {
           price_cents: number;
           image_url: string | null;
           is_published: boolean;
+          is_cancelled: boolean;
+          cancelled_at: string | null;
           age_group: string;
           created_at: string;
         };
@@ -75,6 +77,8 @@ export type Database = {
           price_cents: number;
           image_url?: string | null;
           is_published?: boolean;
+          is_cancelled?: boolean;
+          cancelled_at?: string | null;
           age_group?: string;
           created_at?: string;
         };
@@ -91,6 +95,8 @@ export type Database = {
           image_url?: string | null;
           age_group?: string;
           is_published?: boolean;
+          is_cancelled?: boolean;
+          cancelled_at?: string | null;
         };
         Relationships: [];
       };
@@ -144,7 +150,7 @@ export type Database = {
           image_url: string | null;
           inventory: number;
           slug: string;
-          is_active: boolean;
+          status: Database["public"]["Enums"]["product_status"];
           on_demand: boolean;
           size: string | null;
           created_at: string;
@@ -157,7 +163,7 @@ export type Database = {
           image_url?: string | null;
           inventory?: number;
           slug: string;
-          is_active?: boolean;
+          status?: Database["public"]["Enums"]["product_status"];
           on_demand?: boolean;
           size?: string | null;
           created_at?: string;
@@ -170,7 +176,7 @@ export type Database = {
           image_url?: string | null;
           inventory?: number;
           slug?: string;
-          is_active?: boolean;
+          status?: Database["public"]["Enums"]["product_status"];
           on_demand?: boolean;
           size?: string | null;
         };
@@ -258,8 +264,9 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      booking_status: "confirmed" | "cancelled" | "waitlist";
-      order_status: "pending" | "paid" | "fulfilled" | "cancelled";
+      booking_status: "confirmed" | "cancelled" | "waitlist" | "payment_failed" | "refunded" | "partially_refunded";
+      order_status: "pending" | "paid" | "fulfilled" | "cancelled" | "payment_failed" | "refunded" | "partially_refunded";
+      product_status: "active" | "draft" | "archived";
     };
     CompositeTypes: {
       [_ in never]: never;

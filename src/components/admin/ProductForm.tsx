@@ -252,7 +252,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
             )}
           </div>
 
-          <div className="space-y-2 pt-1">
+          <div className="space-y-4 pt-1">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="on_demand"
@@ -267,15 +267,21 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 </span>
               </Label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="is_active"
-                name="is_active"
-                defaultChecked={defaultValues?.is_active ?? true}
-              />
-              <Label htmlFor="is_active" className="font-normal cursor-pointer">
-                Active (visible in store)
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                name="status"
+                defaultValue={defaultValues?.status ?? "active"}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active — visible in store</SelectItem>
+                  <SelectItem value="draft">Draft — hidden from store</SelectItem>
+                  <SelectItem value="archived">Archived — discontinued, has order history</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

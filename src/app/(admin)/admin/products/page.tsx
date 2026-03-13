@@ -58,8 +58,11 @@ export default async function AdminProductsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{product.inventory}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={product.is_active ? "default" : "secondary"}>
-                      {product.is_active ? "Active" : "Inactive"}
+                    <Badge
+                      variant={product.status === "active" ? "default" : "secondary"}
+                      className={product.status === "archived" ? "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100" : ""}
+                    >
+                      {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">

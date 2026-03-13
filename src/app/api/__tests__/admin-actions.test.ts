@@ -41,6 +41,7 @@ function makeSupabase({
   dbError = null as { message: string } | null,
 } = {}) {
   const single = vi.fn();
+  const inFn = vi.fn().mockResolvedValue({ data: null, count: 0, error: null });
 
   // First single() call → profile with role; subsequent calls reuse same mock
   single.mockResolvedValue({ data: user ? { role } : null, error: null });
@@ -54,7 +55,7 @@ function makeSupabase({
     },
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({ single }),
+        eq: vi.fn().mockReturnValue({ single, in: inFn }),
       }),
       insert: mockInsert,
       update: mockUpdate,
@@ -218,7 +219,7 @@ describe("createProduct", () => {
   it("inserts with correct values on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(
-      createProduct(productFormData({ is_active: "on" }))
+      createProduct(productFormData({ status: "active" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -226,7 +227,7 @@ describe("createProduct", () => {
         slug: "door-parkour-t-shirt-m",
         price_cents: 2500,
         inventory: 10,
-        is_active: true,
+        status: "active",
         size: "M",
       })
     );
@@ -293,10 +294,10 @@ describe("updateProduct", () => {
   it("updates correct record on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(
-      updateProduct("prod-1", productFormData({ is_active: "on" }))
+      updateProduct("prod-1", productFormData({ status: "active" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, is_active: true, size: "M" })
+      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, status: "active", size: "M" })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
   });
@@ -305,6 +306,18 @@ describe("updateProduct", () => {
 // ── deleteClass ───────────────────────────────────────────────
 
 describe("deleteClass", () => {
+  it("throws when active bookings exist", async () => {
+    const inFn = vi.fn().mockResolvedValue({ data: null, count: 2, error: null });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { role: "admin" } }), in: inFn }) }),
+        insert: mockInsert, update: mockUpdate, delete: mockDelete,
+      }),
+    } as never);
+    await expect(deleteClass("class-1")).rejects.toThrow("active bookings");
+  });
+
   it("throws when DB delete fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "foreign key violation" } }) as never

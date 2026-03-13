@@ -3,6 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { getStripe } from "@/lib/stripe/server";
+import { Resend } from "resend";
+
+function getAdminSupabase() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -54,8 +64,103 @@ export async function createClass(formData: FormData) {
 export async function deleteClass(id: string) {
   const supabase = await requireAdmin();
 
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("class_id", id)
+    .in("status", ["confirmed", "waitlist"]);
+
+  if (count && count > 0) {
+    throw new Error(
+      "This class has active bookings. Cancel it instead to notify and refund participants."
+    );
+  }
+
   const { error } = await supabase.from("classes").delete().eq("id", id);
   if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/classes");
+  revalidatePath("/classes");
+}
+
+export async function cancelClass(id: string) {
+  const supabase = await requireAdmin();
+  const adminSupabase = getAdminSupabase();
+  const stripe = getStripe();
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("title, starts_at, is_cancelled")
+    .eq("id", id)
+    .single();
+
+  if (!cls) throw new Error("Class not found");
+  if (cls.is_cancelled) throw new Error("Class is already cancelled");
+
+  const { data: bookings } = await supabase
+    .from("bookings")
+    .select("id, user_id, status, stripe_payment_intent_id")
+    .eq("class_id", id)
+    .in("status", ["confirmed", "waitlist"]);
+
+  // Mark class as cancelled
+  await supabase
+    .from("classes")
+    .update({ is_cancelled: true, cancelled_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (bookings?.length) {
+    // Cancel all active bookings (DB trigger restores spots_remaining per row)
+    await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .in("id", bookings.map((b) => b.id));
+
+    // Stripe refunds for confirmed bookings
+    const refundable = bookings.filter(
+      (b) => b.status === "confirmed" && b.stripe_payment_intent_id
+    );
+    await Promise.allSettled(
+      refundable.map((b) =>
+        stripe.refunds.create({ payment_intent: b.stripe_payment_intent_id! })
+      )
+    );
+
+    // Emails via Resend
+    const classDate = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Chicago",
+    }).format(new Date(cls.starts_at));
+
+    await Promise.allSettled(
+      bookings.map(async (b) => {
+        const { data: userData } = await adminSupabase.auth.admin.getUserById(b.user_id);
+        const email = userData?.user?.email;
+        if (!email) return;
+
+        const wasConfirmed = b.status === "confirmed" && b.stripe_payment_intent_id;
+        return resend.emails.send({
+          from: "Door Parkour <noreply@doorparkour.com>",
+          to: email,
+          subject: `Class Cancelled: ${cls.title}`,
+          html: `
+            <p>Hi there,</p>
+            <p>We're sorry to let you know that the following class has been cancelled:</p>
+            <p><strong>${cls.title}</strong><br/>${classDate}</p>
+            ${wasConfirmed ? `<p>A full refund has been issued to your original payment method. Please allow 5–10 business days for it to appear.</p>` : ""}
+            <p>We hope to see you at a future class. Questions? Reply to this email or visit <a href="https://doorparkour.com/contact">doorparkour.com/contact</a>.</p>
+            <p>— The Door Parkour Team</p>
+          `,
+        });
+      })
+    );
+  }
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
@@ -101,7 +206,7 @@ export async function createProduct(formData: FormData) {
     inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
     slug: formData.get("slug") as string,
     image_url: (formData.get("image_url") as string) || null,
-    is_active: formData.get("is_active") === "on",
+    status: (formData.get("status") as string) || "active",
     on_demand: onDemand,
     size: (formData.get("size") as string) || null,
   });
@@ -115,6 +220,17 @@ export async function createProduct(formData: FormData) {
 
 export async function deleteProduct(id: string) {
   const supabase = await requireAdmin();
+
+  const { count } = await supabase
+    .from("order_items")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", id);
+
+  if (count && count > 0) {
+    throw new Error(
+      "This product has order history and can't be deleted. Set it to Inactive instead."
+    );
+  }
 
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw new Error(error.message);
@@ -137,7 +253,7 @@ export async function updateProduct(id: string, formData: FormData) {
       inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
       slug: formData.get("slug") as string,
       image_url: (formData.get("image_url") as string) || null,
-      is_active: formData.get("is_active") === "on",
+      status: (formData.get("status") as string) || "active",
       on_demand: onDemand,
       size: (formData.get("size") as string) || null,
     })

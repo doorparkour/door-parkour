@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil } from "lucide-react";
 import DeleteButton from "@/components/admin/DeleteButton";
-import { deleteClass } from "@/lib/actions/admin";
+import CancelClassButton from "@/components/admin/CancelClassButton";
+import { deleteClass, cancelClass } from "@/lib/actions/admin";
 
 export const metadata: Metadata = { title: "Admin — Classes" };
 
@@ -15,6 +16,20 @@ export default async function AdminClassesPage() {
     .from("classes")
     .select("*")
     .order("starts_at", { ascending: false });
+
+  // Fetch active booking counts per class
+  const { data: bookingCounts } = await supabase
+    .from("bookings")
+    .select("class_id")
+    .in("status", ["confirmed", "waitlist"]);
+
+  const countByClass = (bookingCounts ?? []).reduce<Record<string, number>>(
+    (acc, b) => {
+      acc[b.class_id] = (acc[b.class_id] ?? 0) + 1;
+      return acc;
+    },
+    {}
+  );
 
   return (
     <div className="space-y-6">
@@ -49,43 +64,64 @@ export default async function AdminClassesPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {classes.map((cls) => (
-                <tr key={cls.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">{cls.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {new Intl.DateTimeFormat("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                      timeZone: "America/Chicago",
-                    }).format(new Date(cls.starts_at))}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{cls.location}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {cls.spots_remaining}/{cls.capacity}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={cls.is_published ? "default" : "secondary"}>
-                      {cls.is_published ? "Published" : "Draft"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link href={`/admin/classes/${cls.id}/edit`}>
-                          <Pencil className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <DeleteButton
-                        label={cls.title}
-                        action={deleteClass.bind(null, cls.id)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {classes.map((cls) => {
+                const bookedCount = countByClass[cls.id] ?? 0;
+                return (
+                  <tr
+                    key={cls.id}
+                    className={`hover:bg-muted/20 transition-colors ${cls.is_cancelled ? "opacity-60" : ""}`}
+                  >
+                    <td className="px-4 py-3 font-medium">{cls.title}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Intl.DateTimeFormat("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        timeZone: "America/Chicago",
+                      }).format(new Date(cls.starts_at))}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{cls.location}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {cls.spots_remaining}/{cls.capacity}
+                    </td>
+                    <td className="px-4 py-3">
+                      {cls.is_cancelled ? (
+                        <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
+                          Cancelled
+                        </Badge>
+                      ) : (
+                        <Badge variant={cls.is_published ? "default" : "secondary"}>
+                          {cls.is_published ? "Published" : "Draft"}
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {!cls.is_cancelled && (
+                          <>
+                            <Button asChild variant="ghost" size="sm">
+                              <Link href={`/admin/classes/${cls.id}/edit`}>
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <CancelClassButton
+                              title={cls.title}
+                              bookedCount={bookedCount}
+                              action={cancelClass.bind(null, cls.id)}
+                            />
+                          </>
+                        )}
+                        <DeleteButton
+                          label={cls.title}
+                          action={deleteClass.bind(null, cls.id)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

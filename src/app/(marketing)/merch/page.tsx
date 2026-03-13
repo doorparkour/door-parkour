@@ -18,7 +18,7 @@ export default async function MerchPage() {
   const { data: products, error } = await supabase
     .from("products")
     .select("*")
-    .eq("is_active", true)
+    .eq("status", "active")
     .order("created_at", { ascending: false });
 
   if (error) {
