@@ -50,10 +50,10 @@ export default function ContactPage() {
                   <div>
                     <p className="font-medium text-dp-teal">Email</p>
                     <a
-                      href="mailto:hello@doorparkour.com"
+                      href="mailto:steven@doorparkour.com"
                       className="text-sm text-muted-foreground hover:text-dp-orange transition-colors"
                     >
-                      hello@doorparkour.com
+                      steven@doorparkour.com
                     </a>
                   </div>
                 </div>

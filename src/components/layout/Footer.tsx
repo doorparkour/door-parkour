@@ -67,10 +67,10 @@ export default function Footer() {
         <div className="mt-10 border-t border-white/10 pt-6 text-center text-xs text-white/40">
           © {new Date().getFullYear()} Door Parkour · Sturgeon Bay, WI ·{" "}
           <a
-            href="mailto:hello@doorparkour.com"
+            href="mailto:steven@doorparkour.com"
             className="hover:text-white/70 transition-colors"
           >
-            hello@doorparkour.com
+            steven@doorparkour.com
           </a>
         </div>
       </div>
