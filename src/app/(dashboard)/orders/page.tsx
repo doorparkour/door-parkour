@@ -24,17 +24,30 @@ function formatPrice(cents: number) {
   }).format(cents / 100);
 }
 
-export default async function OrdersPage() {
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const { filter } = await searchParams;
+  const showAll = filter === "all";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: orders } = await supabase
+  let query = supabase
     .from("orders")
     .select("*, order_items(quantity, unit_price_cents, products(name, image_url))")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
+
+  if (!showAll) {
+    query = query.in("status", ["paid", "fulfilled"]);
+  }
+
+  const { data: orders } = await query;
 
   return (
     <div className="space-y-6">
@@ -48,33 +61,71 @@ export default async function OrdersPage() {
         </p>
       </div>
 
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex rounded-lg border p-1 gap-1 bg-muted/30">
+          <Link href="/orders">
+            <span
+              className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                !showAll
+                  ? "bg-white text-dp-teal shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Recent
+            </span>
+          </Link>
+          <Link href="/orders?filter=all">
+            <span
+              className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                showAll
+                  ? "bg-white text-dp-teal shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </span>
+          </Link>
+        </div>
+
+        {(orders?.length ?? 0) > 0 && (
+          <Link href="/merch">
+            <Button
+              size="sm"
+              className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+            >
+              Browse Merch
+            </Button>
+          </Link>
+        )}
+      </div>
+
       {!orders || orders.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <ShoppingBag className="h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No orders yet.</p>
-            <Link href="/merch">
-              <Button
-                size="sm"
-                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
-              >
-                Browse Merch
-              </Button>
-            </Link>
+            <p className="text-muted-foreground">
+              {showAll ? "No orders yet." : "No recent orders."}
+            </p>
+            {showAll ? (
+              <Link href="/merch">
+                <Button
+                  size="sm"
+                  className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+                >
+                  Browse Merch
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/orders?filter=all">
+                <Button size="sm" variant="outline">
+                  View all orders
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <Link href="/merch">
-              <Button
-                size="sm"
-                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
-              >
-                Browse Merch
-              </Button>
-            </Link>
-          </div>
           {orders.map((order) => (
             <Card key={order.id}>
               <CardHeader className="flex flex-row items-start justify-between pb-3">

@@ -7,7 +7,6 @@ import CancelBookingButton from "@/components/dashboard/CancelBookingButton";
 import { CalendarX, MapPin, Clock } from "lucide-react";
 import Link from "next/link";
 
-
 export const metadata: Metadata = { title: "My Bookings" };
 
 const statusColors: Record<string, string> = {
@@ -16,17 +15,50 @@ const statusColors: Record<string, string> = {
   waitlist: "bg-yellow-100 text-yellow-800 border-yellow-200",
 };
 
-export default async function BookingsPage() {
+type ClassInfo = {
+  title: string;
+  starts_at: string;
+  duration_mins: number;
+  location: string;
+  price_cents: number;
+} | null;
+
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const { filter } = await searchParams;
+  const showAll = filter === "all";
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: bookings } = await supabase
+  const { data: allBookings } = await supabase
     .from("bookings")
     .select("*, classes(title, starts_at, duration_mins, location, price_cents)")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
+
+  const now = new Date();
+
+  let bookings = allBookings ?? [];
+
+  if (!showAll) {
+    bookings = bookings.filter((b) => {
+      if (!["confirmed", "waitlist"].includes(b.status)) return false;
+      const cls = b.classes as ClassInfo;
+      if (!cls) return true;
+      return new Date(cls.starts_at) >= now;
+    });
+    bookings.sort((a, b) => {
+      const aDate = (a.classes as ClassInfo)?.starts_at ?? "";
+      const bDate = (b.classes as ClassInfo)?.starts_at ?? "";
+      return new Date(aDate).getTime() - new Date(bDate).getTime();
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -37,44 +69,74 @@ export default async function BookingsPage() {
         </p>
       </div>
 
-      {!bookings || bookings.length === 0 ? (
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex rounded-lg border p-1 gap-1 bg-muted/30">
+          <Link href="/bookings">
+            <span
+              className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                !showAll
+                  ? "bg-white text-dp-teal shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Upcoming
+            </span>
+          </Link>
+          <Link href="/bookings?filter=all">
+            <span
+              className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                showAll
+                  ? "bg-white text-dp-teal shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </span>
+          </Link>
+        </div>
+
+        {bookings.length > 0 && (
+          <Link href="/classes">
+            <Button
+              size="sm"
+              className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+            >
+              Browse Classes
+            </Button>
+          </Link>
+        )}
+      </div>
+
+      {bookings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <CalendarX className="h-10 w-10 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No bookings yet.</p>
-            <Link href="/classes">
-              <Button
-                size="sm"
-                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
-              >
-                Browse Classes
-              </Button>
-            </Link>
+            <p className="text-muted-foreground">
+              {showAll ? "No bookings yet." : "No upcoming bookings."}
+            </p>
+            {showAll ? (
+              <Link href="/classes">
+                <Button
+                  size="sm"
+                  className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+                >
+                  Browse Classes
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/bookings?filter=all">
+                <Button size="sm" variant="outline">
+                  View all bookings
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <Link href="/classes">
-              <Button
-                size="sm"
-                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
-              >
-                Browse Classes
-              </Button>
-            </Link>
-          </div>
           {bookings.map((booking) => {
-            const cls = booking.classes as {
-              title: string;
-              starts_at: string;
-              duration_mins: number;
-              location: string;
-              price_cents: number;
-            } | null;
-            const isPast = cls
-              ? new Date(cls.starts_at) < new Date()
-              : false;
+            const cls = booking.classes as ClassInfo;
+            const isPast = cls ? new Date(cls.starts_at) < new Date() : false;
 
             return (
               <Card key={booking.id} className={isPast ? "opacity-60" : ""}>

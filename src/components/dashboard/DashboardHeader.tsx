@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { LogOut, Settings, LayoutDashboard, Menu } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import DashboardSidebar from "./DashboardSidebar";
 
@@ -55,7 +55,10 @@ export default function DashboardHeader({ user, profile }: DashboardHeaderProps)
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-60 p-0">
-          <DashboardSidebar />
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation</SheetTitle>
+          </SheetHeader>
+          <DashboardSidebar inSheet />
         </SheetContent>
       </Sheet>
 
