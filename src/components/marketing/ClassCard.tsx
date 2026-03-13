@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,10 +34,21 @@ function formatPrice(cents: number) {
   }).format(cents / 100);
 }
 
+const FALLBACK_IMG = "/door-parkour-banner.jpg";
+
 export default function ClassCard({ cls }: ClassCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [imgSrc, setImgSrc] = useState(cls.image_url || FALLBACK_IMG);
+  const imgRef = useRef<HTMLImageElement>(null);
   const isFull = cls.spots_remaining === 0;
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      setImgSrc(FALLBACK_IMG);
+    }
+  }, []);
 
   async function handleBook() {
     setLoading(true);
@@ -67,10 +78,11 @@ export default function ClassCard({ cls }: ClassCardProps) {
       <div className="h-40 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={cls.image_url || "/door-parkour-banner.jpg"}
+          ref={imgRef}
+          src={imgSrc}
           alt={cls.title}
           className="h-full w-full object-cover object-center"
-          onError={(e) => { e.currentTarget.src = "/door-parkour-banner.jpg"; }}
+          onError={() => setImgSrc(FALLBACK_IMG)}
         />
       </div>
 

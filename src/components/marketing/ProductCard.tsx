@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,8 @@ import type { Database } from "@/lib/supabase/types";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
+const FALLBACK_IMG = "/door-parkour-banner.jpg";
+
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -19,8 +22,18 @@ function formatPrice(cents: number) {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { addItem, items } = useCart((s) => ({ addItem: s.addItem, items: s.items }));
+  const addItem = useCart((s) => s.addItem);
+  const items = useCart((s) => s.items);
   const cartQuantity = items.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const [imgSrc, setImgSrc] = useState(product.image_url || FALLBACK_IMG);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      setImgSrc(FALLBACK_IMG);
+    }
+  }, []);
 
   const isOutOfStock = !product.on_demand && product.inventory === 0;
   const isCartFull = !product.on_demand && cartQuantity >= product.inventory;
@@ -44,10 +57,11 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="h-40 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={product.image_url || "/door-parkour-banner.jpg"}
+          ref={imgRef}
+          src={imgSrc}
           alt={product.name}
           className="h-full w-full object-cover object-center"
-          onError={(e) => { e.currentTarget.src = "/door-parkour-banner.jpg"; }}
+          onError={() => setImgSrc(FALLBACK_IMG)}
         />
       </div>
 

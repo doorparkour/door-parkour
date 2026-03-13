@@ -109,7 +109,10 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
+            <Label htmlFor="image_url">
+              Image URL{" "}
+              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+            </Label>
             <Input
               id="image_url"
               name="image_url"
