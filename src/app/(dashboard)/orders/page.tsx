@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import OrderSuccessHandler from "@/components/marketing/OrderSuccessHandler";
 
 export const metadata: Metadata = { title: "My Orders" };
 
@@ -36,6 +38,9 @@ export default async function OrdersPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense>
+        <OrderSuccessHandler />
+      </Suspense>
       <div>
         <h1 className="text-2xl font-bold text-dp-teal">My Orders</h1>
         <p className="mt-1 text-sm text-muted-foreground">

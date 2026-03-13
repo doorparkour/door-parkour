@@ -21,7 +21,7 @@ export default function CartDrawer() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { items, removeItem, updateQuantity, totalItems, totalCents, clearCart } =
+  const { items, removeItem, updateQuantity, totalItems, totalCents } =
     useCart();
 
   async function handleCheckout() {
@@ -55,7 +55,6 @@ export default function CartDrawer() {
     }
 
     window.location.href = data.url;
-    clearCart();
   }
 
   return (
