@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,38 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+
+// Add new merch types here as the catalog grows
+const MERCH_PRESETS = {
+  tshirt: {
+    label: "T-Shirt",
+    names: [
+      "Door Parkour Tee",
+      "Door Parkour Classic Tee",
+      "Door Parkour Long Sleeve Tee",
+    ],
+  },
+} as const;
+
+type MerchType = keyof typeof MERCH_PRESETS;
+
+function inferMerchType(name: string): MerchType {
+  for (const [key, preset] of Object.entries(MERCH_PRESETS)) {
+    if ((preset.names as readonly string[]).includes(name)) return key as MerchType;
+  }
+  return "tshirt";
+}
 
 interface ProductFormProps {
   action: (formData: FormData) => Promise<void>;
@@ -19,8 +47,44 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ action, defaultValues }: ProductFormProps) {
+  const initialType = defaultValues?.name
+    ? inferMerchType(defaultValues.name)
+    : "tshirt";
+
+  const [merchType, setMerchType] = useState<MerchType>(initialType);
+  const [selectedName, setSelectedName] = useState<string>(
+    defaultValues?.name ?? MERCH_PRESETS[initialType].names[0]
+  );
+  const [priceValue, setPriceValue] = useState(
+    defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
+  );
+
+  const preset = MERCH_PRESETS[merchType];
+
+  function handleMerchTypeChange(value: MerchType) {
+    setMerchType(value);
+    setSelectedName(MERCH_PRESETS[value].names[0]);
+  }
+
+  function handlePriceChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Allow only digits and a single decimal point
+    const raw = e.target.value.replace(/[^\d.]/g, "");
+    const parts = raw.split(".");
+    const formatted =
+      parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw;
+    setPriceValue(formatted);
+  }
+
+  function handlePriceBlur() {
+    const num = parseFloat(priceValue);
+    if (!isNaN(num)) setPriceValue(num.toFixed(2));
+  }
+
   const [error, formAction, pending] = useActionState(
     async (_: string | null, formData: FormData) => {
+      // Inject controlled values that aren't standard inputs
+      formData.set("name", selectedName);
+      formData.set("price", priceValue || "0");
       try {
         await action(formData);
         return null;
@@ -35,18 +99,49 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
     <form action={formAction} className="space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Product Type</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>Merch Type</Label>
+            <Select
+              value={merchType}
+              onValueChange={(v) => handleMerchTypeChange(v as MerchType)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(MERCH_PRESETS).map(([key, { label }]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Product Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              required
-              defaultValue={defaultValues?.name ?? ""}
-              placeholder="Door Parkour T-Shirt"
-            />
+            <Label>Name</Label>
+            <Select value={selectedName} onValueChange={setSelectedName}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {preset.names.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -68,7 +163,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 name="slug"
                 required
                 defaultValue={defaultValues?.slug ?? ""}
-                placeholder="door-parkour-tshirt"
+                placeholder="door-parkour-tee"
               />
             </div>
             <div className="space-y-2">
@@ -85,28 +180,37 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                defaultValue={
-                  defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : "0.00"
-                }
-              />
+              <Label htmlFor="price">Price</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="price"
+                  className="pl-6"
+                  inputMode="decimal"
+                  value={priceValue}
+                  onChange={handlePriceChange}
+                  onBlur={handlePriceBlur}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="inventory">Inventory</Label>
+              <Label htmlFor="inventory">
+                Inventory{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (optional — leave blank for on-demand)
+                </span>
+              </Label>
               <Input
                 id="inventory"
                 name="inventory"
                 type="number"
                 min={0}
-                required
-                defaultValue={defaultValues?.inventory ?? 0}
+                defaultValue={defaultValues?.inventory ?? ""}
+                placeholder="—"
               />
             </div>
           </div>

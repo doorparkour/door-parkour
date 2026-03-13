@@ -75,11 +75,12 @@ export async function updateClass(id: string, formData: FormData) {
 export async function createProduct(formData: FormData) {
   const supabase = await requireAdmin();
 
+  const inventoryRaw = formData.get("inventory") as string;
   const { error } = await supabase.from("products").insert({
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
     price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
-    inventory: parseInt(formData.get("inventory") as string),
+    inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
     slug: formData.get("slug") as string,
     image_url: (formData.get("image_url") as string) || null,
     is_active: formData.get("is_active") === "on",
@@ -95,13 +96,14 @@ export async function createProduct(formData: FormData) {
 export async function updateProduct(id: string, formData: FormData) {
   const supabase = await requireAdmin();
 
+  const inventoryRaw = formData.get("inventory") as string;
   const { error } = await supabase
     .from("products")
     .update({
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || null,
       price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
-      inventory: parseInt(formData.get("inventory") as string),
+      inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
       slug: formData.get("slug") as string,
       image_url: (formData.get("image_url") as string) || null,
       is_active: formData.get("is_active") === "on",
