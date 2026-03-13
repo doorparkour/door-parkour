@@ -79,11 +79,11 @@ function classFormData(overrides: Record<string, string> = {}): FormData {
 function productFormData(overrides: Record<string, string> = {}): FormData {
   const fd = new FormData();
   const defaults: Record<string, string> = {
-    name: "T-Shirt",
+    name: "Door Parkour Tee",
     description: "Comfy",
     price: "25.00",
     inventory: "10",
-    slug: "t-shirt",
+    slug: "door-parkour-tee",
     image_url: "",
     ...overrides,
   };
@@ -196,12 +196,22 @@ describe("createProduct", () => {
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "T-Shirt",
-        slug: "t-shirt",
+        name: "Door Parkour Tee",
+        slug: "door-parkour-tee",
         price_cents: 2500,
         inventory: 10,
         is_active: true,
       })
+    );
+  });
+
+  it("defaults inventory to 0 when omitted (on-demand)", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createProduct(productFormData({ inventory: "" }))
+    ).rejects.toThrow("REDIRECT:/admin/products");
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ inventory: 0 })
     );
   });
 
@@ -231,7 +241,7 @@ describe("updateProduct", () => {
       updateProduct("prod-1", productFormData({ is_active: "on" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "T-Shirt", price_cents: 2500, is_active: true })
+      expect.objectContaining({ name: "Door Parkour Tee", price_cents: 2500, is_active: true })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
   });
