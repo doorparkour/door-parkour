@@ -60,6 +60,7 @@ export type Database = {
           price_cents: number;
           image_url: string | null;
           is_published: boolean;
+          age_group: string;
           created_at: string;
         };
         Insert: {
@@ -74,6 +75,7 @@ export type Database = {
           price_cents: number;
           image_url?: string | null;
           is_published?: boolean;
+          age_group?: string;
           created_at?: string;
         };
         Update: {
@@ -87,6 +89,7 @@ export type Database = {
           spots_remaining?: number;
           price_cents?: number;
           image_url?: string | null;
+          age_group?: string;
           is_published?: boolean;
         };
         Relationships: [];

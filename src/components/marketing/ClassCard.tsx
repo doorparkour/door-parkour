@@ -91,6 +91,10 @@ export default function ClassCard({ cls }: ClassCardProps) {
           )}
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          {cls.age_group === "youth" ? "Ages 8–13" : "Ages 14+"}
+        </p>
+
         {cls.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">
             {cls.description}

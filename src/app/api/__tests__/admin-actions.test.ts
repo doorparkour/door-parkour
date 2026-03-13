@@ -75,6 +75,7 @@ function classFormData(overrides: Record<string, string> = {}): FormData {
     duration_mins: "90",
     capacity: "8",
     price: "45.00",
+    age_group: "adult",
     ...overrides,
   };
   Object.entries(defaults).forEach(([k, v]) => fd.append(k, v));
@@ -147,7 +148,18 @@ describe("createClass", () => {
         spots_remaining: 8,
         price_cents: 4500,
         is_published: true,
+        age_group: "adult",
       })
+    );
+  });
+
+  it("passes age_group: youth when specified", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createClass(classFormData({ age_group: "youth" }))
+    ).rejects.toThrow("REDIRECT:/admin/classes");
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ age_group: "youth" })
     );
   });
 

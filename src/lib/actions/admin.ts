@@ -38,6 +38,7 @@ export async function createClass(formData: FormData) {
     spots_remaining: parseInt(formData.get("capacity") as string),
     price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
     is_published: formData.get("is_published") === "on",
+    age_group: formData.get("age_group") as string,
   });
 
   if (error) throw new Error(error.message);
@@ -72,6 +73,7 @@ export async function updateClass(id: string, formData: FormData) {
       capacity: parseInt(formData.get("capacity") as string),
       price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
       is_published: formData.get("is_published") === "on",
+      age_group: formData.get("age_group") as string,
     })
     .eq("id", id);
 

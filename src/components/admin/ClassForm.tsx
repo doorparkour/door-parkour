@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import type { Database } from "@/lib/supabase/types";
+
+const AGE_GROUPS = [
+  { value: "youth", label: "Youth (Ages 8–13)" },
+  { value: "adult", label: "Adult (Ages 14+)" },
+] as const;
 
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
@@ -23,8 +35,28 @@ function toDatetimeLocal(iso: string) {
 }
 
 export default function ClassForm({ action, defaultValues }: ClassFormProps) {
+  const [priceValue, setPriceValue] = useState(
+    defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
+  );
+  const [ageGroup, setAgeGroup] = useState(
+    defaultValues?.age_group ?? "adult"
+  );
+
+  function handlePriceChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^\d.]/g, "");
+    const parts = raw.split(".");
+    setPriceValue(parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw);
+  }
+
+  function handlePriceBlur() {
+    const num = parseFloat(priceValue);
+    if (!isNaN(num)) setPriceValue(num.toFixed(2));
+  }
+
   const [error, formAction, pending] = useActionState(
     async (_: string | null, formData: FormData) => {
+      formData.set("price", priceValue || "0");
+      formData.set("age_group", ageGroup);
       try {
         await action(formData);
         return null;
@@ -51,6 +83,22 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
               defaultValue={defaultValues?.title ?? ""}
               placeholder="Intro to Parkour"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Age Group</Label>
+            <Select value={ageGroup} onValueChange={setAgeGroup}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AGE_GROUPS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -126,18 +174,22 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                defaultValue={
-                  defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : "0.00"
-                }
-              />
+              <Label htmlFor="price">Price</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="price"
+                  className="pl-6"
+                  inputMode="decimal"
+                  value={priceValue}
+                  onChange={handlePriceChange}
+                  onBlur={handlePriceBlur}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </div>
           </div>
 
