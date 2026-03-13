@@ -105,6 +105,15 @@ describe("POST /api/checkout/merch", () => {
     expect(await res.json()).toMatchObject({ error: expect.stringContaining("out of stock") });
   });
 
+  it("returns 400 when requested quantity exceeds available inventory", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+
+    // prod-1 has inventory: 10; requesting 11
+    const res = await POST(makeRequest({ items: [{ productId: "prod-1", quantity: 11 }] }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: expect.stringContaining("Only 10") });
+  });
+
   it("allows checkout when on-demand product has zero inventory", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
 

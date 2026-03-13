@@ -19,19 +19,22 @@ function formatPrice(cents: number) {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-  const addItem = useCart((s) => s.addItem);
+  const { addItem, items } = useCart((s) => ({ addItem: s.addItem, items: s.items }));
+  const cartQuantity = items.find((i) => i.productId === product.id)?.quantity ?? 0;
 
-  // on_demand = always orderable, no stock badge
-  // limited supply = show count when > 0, block + badge when 0
   const isOutOfStock = !product.on_demand && product.inventory === 0;
+  const isCartFull = !product.on_demand && cartQuantity >= product.inventory;
   const showStock = !product.on_demand && product.inventory > 0;
 
   function handleAddToCart() {
+    if (isCartFull) return;
     addItem({
       productId: product.id,
       name: product.name,
       price_cents: product.price_cents,
       image_url: product.image_url,
+      inventory: product.inventory,
+      on_demand: product.on_demand,
     });
     toast.success(`${product.name} added to cart`);
   }
@@ -75,7 +78,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
         <Button
           size="sm"
-          disabled={isOutOfStock}
+          disabled={isOutOfStock || isCartFull}
           onClick={handleAddToCart}
           className="bg-dp-orange text-white hover:bg-dp-orange-dark gap-1.5"
         >

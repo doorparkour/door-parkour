@@ -29,6 +29,11 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[stripe-webhook] constructEvent failed:", message, {
+      sigHeader: sig?.slice(0, 20),
+      secretSet: !!process.env.STRIPE_WEBHOOK_SECRET,
+      bodyLength: body.length,
+    });
     return NextResponse.json(
       { error: `Webhook error: ${message}` },
       { status: 400 }
@@ -93,6 +98,19 @@ async function handleClassBooking(
       status: "confirmed",
       stripe_payment_intent_id: session.payment_intent as string,
     });
+
+    // Decrement available spots
+    const { data: cls } = await supabase
+      .from("classes")
+      .select("spots_remaining")
+      .eq("id", class_id)
+      .single();
+    if (cls && cls.spots_remaining > 0) {
+      await supabase
+        .from("classes")
+        .update({ spots_remaining: cls.spots_remaining - 1 })
+        .eq("id", class_id);
+    }
   }
 }
 
@@ -120,7 +138,7 @@ async function handleMerchOrder(
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, price_cents")
+    .select("id, price_cents, inventory, on_demand")
     .in(
       "id",
       items.map((i) => i.productId)
@@ -139,6 +157,18 @@ async function handleMerchOrder(
   });
 
   await supabase.from("order_items").insert(orderItems);
+
+  // Decrement inventory for limited-supply products
+  for (const item of items) {
+    const product = products?.find(
+      (p: { id: string; inventory: number; on_demand: boolean }) => p.id === item.productId
+    );
+    if (!product || product.on_demand) continue;
+    await supabase
+      .from("products")
+      .update({ inventory: Math.max(0, product.inventory - item.quantity) })
+      .eq("id", item.productId);
+  }
 }
 
 async function handlePaymentFailed(

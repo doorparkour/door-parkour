@@ -116,7 +116,8 @@ export default function CartDrawer() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        className="rounded p-1 hover:bg-muted"
+                        disabled={!item.on_demand && item.quantity >= item.inventory}
+                        className="rounded p-1 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Plus className="h-3 w-3" />
                       </button>

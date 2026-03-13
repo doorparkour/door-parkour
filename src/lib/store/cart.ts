@@ -7,6 +7,8 @@ export interface CartItem {
   price_cents: number;
   image_url: string | null;
   quantity: number;
+  inventory: number;
+  on_demand: boolean;
 }
 
 interface CartStore {

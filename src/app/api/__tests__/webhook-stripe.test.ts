@@ -23,9 +23,10 @@ function makeSupabase() {
   const insert = vi.fn().mockReturnValue({ select: insertSelect });
   const single = vi.fn().mockResolvedValue({ data: null, error: null });
   // supports: .select().eq().eq().single()  (class booking lookup)
+  //           .select().eq().single()        (classes spots_remaining lookup)
   //       and .select().in()                (products lookup in handleMerchOrder)
   const selectResult = {
-    eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }) }),
+    eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }), single }),
     in: vi.fn().mockResolvedValue({ data: [], error: null }),
   };
   const select = vi.fn().mockReturnValue(selectResult);
@@ -92,6 +93,42 @@ describe("POST /api/webhooks/stripe", () => {
     expect(mockFrom).toHaveBeenCalledWith("bookings");
   });
 
+  it("decrements spots_remaining after a new class booking", async () => {
+    const mockClassUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: null, error: null });
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }) }),
+          }),
+          insert: vi.fn().mockResolvedValue({}),
+        };
+      }
+      if (table === "classes") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { spots_remaining: 5 }, error: null }),
+            }),
+          }),
+          update: mockClassUpdate,
+        };
+      }
+      return { select: vi.fn(), insert: vi.fn(), update: vi.fn() };
+    });
+
+    mockConstructEvent.mockReturnValue({
+      type: "checkout.session.completed",
+      data: { object: makeSession("class_booking") },
+    });
+
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    expect(mockClassUpdate).toHaveBeenCalledWith({ spots_remaining: 4 });
+  });
+
   it("updates existing booking on class_booking if one already exists", async () => {
     const supabase = makeSupabase();
     // single() returns existing booking
@@ -132,6 +169,69 @@ describe("POST /api/webhooks/stripe", () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     expect(mockFrom).toHaveBeenCalledWith("orders");
+  });
+
+  it("decrements inventory for limited-supply products after merch order", async () => {
+    const mockProductUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+    const cart = JSON.stringify([{ productId: "prod-limited", quantity: 2 }]);
+    const productRows = [{ id: "prod-limited", price_cents: 2500, inventory: 10, on_demand: false }];
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "products") {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: productRows, error: null }),
+          }),
+          update: mockProductUpdate,
+        };
+      }
+      if (table === "orders") {
+        const single = vi.fn().mockResolvedValue({ data: { id: "order-1" }, error: null });
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single }) }) };
+      }
+      return { insert: vi.fn().mockResolvedValue({}) };
+    });
+
+    mockConstructEvent.mockReturnValue({
+      type: "checkout.session.completed",
+      data: { object: makeSession("merch_order", { cart, total_cents: "2500", class_id: undefined }) },
+    });
+
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    // 10 inventory - 2 quantity = 8
+    expect(mockProductUpdate).toHaveBeenCalledWith({ inventory: 8 });
+  });
+
+  it("does not decrement inventory for on_demand products after merch order", async () => {
+    const mockProductUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+    const cart = JSON.stringify([{ productId: "prod-ondemand", quantity: 3 }]);
+    const productRows = [{ id: "prod-ondemand", price_cents: 2500, inventory: 0, on_demand: true }];
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "products") {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: productRows, error: null }),
+          }),
+          update: mockProductUpdate,
+        };
+      }
+      if (table === "orders") {
+        const single = vi.fn().mockResolvedValue({ data: { id: "order-1" }, error: null });
+        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single }) }) };
+      }
+      return { insert: vi.fn().mockResolvedValue({}) };
+    });
+
+    mockConstructEvent.mockReturnValue({
+      type: "checkout.session.completed",
+      data: { object: makeSession("merch_order", { cart, total_cents: "2500", class_id: undefined }) },
+    });
+
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    expect(mockProductUpdate).not.toHaveBeenCalled();
   });
 
   it("sets payment_failed status on payment_intent.payment_failed", async () => {
