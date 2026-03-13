@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, ShoppingBag, User, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Calendar, ShoppingBag, User, ShieldCheck, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -65,6 +65,13 @@ export default function DashboardSidebar({
         >
           <Calendar className="h-4 w-4" />
           Browse Classes
+        </Link>
+        <Link
+          href="/merch"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-dp-orange hover:bg-dp-orange/10 transition-colors"
+        >
+          <Store className="h-4 w-4" />
+          Browse Merch
         </Link>
         {isAdmin && (
           <Link
