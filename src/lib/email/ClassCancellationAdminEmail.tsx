@@ -32,7 +32,7 @@ export function ClassCancellationAdminEmail({
   return (
     <Html>
       <Head />
-      <Preview>Class cancelled: {className} — {participants.length} participant{participants.length !== 1 ? "s" : ""} notified</Preview>
+      <Preview>{`Class cancelled: ${className} — ${participants.length} participant${participants.length !== 1 ? "s" : ""} notified`}</Preview>
       <Body style={body}>
         <Container style={container}>
           {/* Header */}

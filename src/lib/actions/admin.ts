@@ -223,7 +223,7 @@ export async function createProduct(formData: FormData) {
     inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
     slug: formData.get("slug") as string,
     image_url: (formData.get("image_url") as string) || null,
-    status: (formData.get("status") as string) || "active",
+    status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
     on_demand: onDemand,
     size: (formData.get("size") as string) || null,
   });
@@ -270,7 +270,7 @@ export async function updateProduct(id: string, formData: FormData) {
       inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
       slug: formData.get("slug") as string,
       image_url: (formData.get("image_url") as string) || null,
-      status: (formData.get("status") as string) || "active",
+      status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
       on_demand: onDemand,
       size: (formData.get("size") as string) || null,
     })
