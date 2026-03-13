@@ -47,6 +47,17 @@ export async function createClass(formData: FormData) {
   redirect("/admin/classes");
 }
 
+export async function deleteClass(id: string) {
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase.from("classes").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/classes");
+  revalidatePath("/classes");
+  redirect("/admin/classes");
+}
+
 export async function updateClass(id: string, formData: FormData) {
   const supabase = await requireAdmin();
 
@@ -90,6 +101,17 @@ export async function createProduct(formData: FormData) {
     on_demand: onDemand,
   });
 
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/products");
+  revalidatePath("/merch");
+  redirect("/admin/products");
+}
+
+export async function deleteProduct(id: string) {
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/products");

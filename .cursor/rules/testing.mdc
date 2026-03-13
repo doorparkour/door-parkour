@@ -1,0 +1,46 @@
+---
+description: Vitest conventions for the door-parkour unit test suite
+globs: src/app/api/__tests__/**/*.test.ts
+alwaysApply: false
+---
+
+# Testing Conventions
+
+## Mocking Supabase chainable queries
+
+Each method in the chain must return the chain object. Only the terminal method resolves:
+
+```ts
+const node: Record<string, unknown> = {};
+["select", "in", "update"].forEach((m) => { node[m] = vi.fn().mockReturnValue(node); });
+node.eq = vi.fn().mockResolvedValue({ data: [...], error: null });
+```
+
+If a route calls `.insert().select().single()`, each must be chained — `insert` returns an object with `select`, which returns an object with `single`.
+
+## Hoisted mocks
+
+Use `vi.hoisted` when a mock variable is referenced inside a `vi.mock` factory to avoid "cannot access before initialization":
+
+```ts
+const mockFn = vi.hoisted(() => vi.fn());
+vi.mock("some-module", () => ({
+  default: vi.fn().mockImplementation(function () { return { method: mockFn }; }),
+}));
+```
+
+## Mocking `redirect` from `next/navigation`
+
+`redirect` throws in real Next.js — mirror that so execution stops as expected:
+
+```ts
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }),
+}));
+```
+
+Assert with `rejects.toThrow("REDIRECT:/expected-path")`.
+
+## Fixture completeness
+
+Fixtures must include every field the route logic actually reads. A missing field (e.g. `on_demand`, `inventory`) silently evaluates as `undefined`, causing guards to never fire and producing false-green tests.

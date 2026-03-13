@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil } from "lucide-react";
+import DeleteButton from "@/components/admin/DeleteButton";
+import { deleteProduct } from "@/lib/actions/admin";
 
 export const metadata: Metadata = { title: "Admin — Products" };
 
@@ -61,11 +63,17 @@ export default async function AdminProductsPage() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/admin/products/${product.id}/edit`}>
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/admin/products/${product.id}/edit`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <DeleteButton
+                        label={product.name}
+                        action={deleteProduct.bind(null, product.id)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
