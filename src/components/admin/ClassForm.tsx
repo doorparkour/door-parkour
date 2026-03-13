@@ -34,6 +34,13 @@ function toDatetimeLocal(iso: string) {
   return new Date(iso).toISOString().slice(0, 16);
 }
 
+function nowDatetimeLocal() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+}
+
 export default function ClassForm({ action, defaultValues }: ClassFormProps) {
   const [priceValue, setPriceValue] = useState(
     defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
@@ -141,6 +148,7 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
                 name="starts_at"
                 type="datetime-local"
                 required
+                min={!defaultValues ? nowDatetimeLocal() : undefined}
                 defaultValue={
                   defaultValues?.starts_at
                     ? toDatetimeLocal(defaultValues.starts_at)

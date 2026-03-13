@@ -27,6 +27,9 @@ async function requireAdmin() {
 export async function createClass(formData: FormData) {
   const supabase = await requireAdmin();
 
+  const startsAt = new Date(formData.get("starts_at") as string);
+  if (startsAt <= new Date()) throw new Error("Class must be scheduled in the future.");
+
   const { error } = await supabase.from("classes").insert({
     title: formData.get("title") as string,
     description: (formData.get("description") as string) || null,
@@ -100,6 +103,7 @@ export async function createProduct(formData: FormData) {
     image_url: (formData.get("image_url") as string) || null,
     is_active: formData.get("is_active") === "on",
     on_demand: onDemand,
+    size: (formData.get("size") as string) || null,
   });
 
   if (error) throw new Error(error.message);
@@ -135,6 +139,7 @@ export async function updateProduct(id: string, formData: FormData) {
       image_url: (formData.get("image_url") as string) || null,
       is_active: formData.get("is_active") === "on",
       on_demand: onDemand,
+      size: (formData.get("size") as string) || null,
     })
     .eq("id", id);
 

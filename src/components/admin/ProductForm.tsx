@@ -22,12 +22,14 @@ import type { Database } from "@/lib/supabase/types";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 
+const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
 // Add new merch types here as the catalog grows.
-// Apparel types will eventually support a size selector (S/M/L/XL/XXL).
-// Accessories are single-SKU and won't need sizes.
+// Apparel shows a size selector; accessories are single-SKU.
 const MERCH_PRESETS = {
   apparel: {
     label: "Apparel",
+    hasSize: true,
     names: [
       "Door Parkour T-Shirt",
       "Door Parkour Long-Sleeve Shirt",
@@ -46,9 +48,15 @@ const MERCH_PRESETS = {
 
 const allNames = Object.values(MERCH_PRESETS).flatMap((p) => p.names);
 const multipleTypes = Object.keys(MERCH_PRESETS).length > 1;
+const apparelNames = new Set<string>(MERCH_PRESETS.apparel.names);
 
 function defaultName() {
   return Object.values(MERCH_PRESETS)[0].names[0];
+}
+
+function toSlug(name: string, size: string | null) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return size ? `${base}-${size.toLowerCase()}` : base;
 }
 
 interface ProductFormProps {
@@ -57,8 +65,15 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ action, defaultValues }: ProductFormProps) {
-  const [selectedName, setSelectedName] = useState<string>(
-    defaultValues?.name ?? defaultName()
+  const initialName = defaultValues?.name ?? defaultName();
+  const initialIsApparel = apparelNames.has(initialName);
+
+  const [selectedName, setSelectedName] = useState<string>(initialName);
+  const [selectedSize, setSelectedSize] = useState<string | null>(
+    defaultValues?.size ?? (initialIsApparel ? "M" : null)
+  );
+  const [slug, setSlug] = useState(
+    defaultValues?.slug ?? toSlug(initialName, initialIsApparel ? (defaultValues?.size ?? "M") : null)
   );
   const [priceValue, setPriceValue] = useState(
     defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
@@ -67,13 +82,26 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
     defaultValues?.on_demand ?? false
   );
 
+  const isApparel = apparelNames.has(selectedName);
+
+  function handleNameChange(name: string) {
+    const nowApparel = apparelNames.has(name);
+    const size = nowApparel ? (selectedSize ?? "M") : null;
+    if (nowApparel && !isApparel) setSelectedSize("M");
+    if (!nowApparel) setSelectedSize(null);
+    setSelectedName(name);
+    setSlug(toSlug(name, size));
+  }
+
+  function handleSizeChange(size: string) {
+    setSelectedSize(size);
+    setSlug(toSlug(selectedName, size));
+  }
+
   function handlePriceChange(e: React.ChangeEvent<HTMLInputElement>) {
-    // Allow only digits and a single decimal point
     const raw = e.target.value.replace(/[^\d.]/g, "");
     const parts = raw.split(".");
-    const formatted =
-      parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw;
-    setPriceValue(formatted);
+    setPriceValue(parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw);
   }
 
   function handlePriceBlur() {
@@ -83,9 +111,10 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
 
   const [error, formAction, pending] = useActionState(
     async (_: string | null, formData: FormData) => {
-      // Inject controlled values that aren't standard inputs
       formData.set("name", selectedName);
       formData.set("price", priceValue || "0");
+      formData.set("slug", slug);
+      if (selectedSize) formData.set("size", selectedSize);
       try {
         await action(formData);
         return null;
@@ -103,31 +132,51 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
           <CardTitle className="text-base">Product Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Name</Label>
-            <Select value={selectedName} onValueChange={setSelectedName}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {multipleTypes
-                  ? Object.values(MERCH_PRESETS).map((preset) => (
-                      <SelectGroup key={preset.label}>
-                        <SelectLabel>{preset.label}</SelectLabel>
-                        {preset.names.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))
-                  : allNames.map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Select value={selectedName} onValueChange={handleNameChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {multipleTypes
+                    ? Object.values(MERCH_PRESETS).map((preset) => (
+                        <SelectGroup key={preset.label}>
+                          <SelectLabel>{preset.label}</SelectLabel>
+                          {preset.names.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))
+                    : allNames.map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isApparel && (
+              <div className="space-y-2">
+                <Label>Size</Label>
+                <Select value={selectedSize ?? "M"} onValueChange={handleSizeChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {APPAREL_SIZES.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
                       </SelectItem>
                     ))}
-              </SelectContent>
-            </Select>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -148,8 +197,9 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 id="slug"
                 name="slug"
                 required
-                defaultValue={defaultValues?.slug ?? ""}
-                placeholder="door-parkour-tee"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="door-parkour-t-shirt-m"
               />
             </div>
             <div className="space-y-2">

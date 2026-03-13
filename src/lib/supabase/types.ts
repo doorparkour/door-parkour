@@ -146,6 +146,7 @@ export type Database = {
           slug: string;
           is_active: boolean;
           on_demand: boolean;
+          size: string | null;
           created_at: string;
         };
         Insert: {
@@ -158,6 +159,7 @@ export type Database = {
           slug: string;
           is_active?: boolean;
           on_demand?: boolean;
+          size?: string | null;
           created_at?: string;
         };
         Update: {
@@ -170,6 +172,7 @@ export type Database = {
           slug?: string;
           is_active?: boolean;
           on_demand?: boolean;
+          size?: string | null;
         };
         Relationships: [];
       };
