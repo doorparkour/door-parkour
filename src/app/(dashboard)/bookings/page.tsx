@@ -54,6 +54,16 @@ export default async function BookingsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Link href="/classes">
+              <Button
+                size="sm"
+                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+              >
+                Browse Classes
+              </Button>
+            </Link>
+          </div>
           {bookings.map((booking) => {
             const cls = booking.classes as {
               title: string;

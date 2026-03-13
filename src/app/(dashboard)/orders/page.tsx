@@ -65,6 +65,16 @@ export default async function OrdersPage() {
         </Card>
       ) : (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Link href="/merch">
+              <Button
+                size="sm"
+                className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+              >
+                Browse Merch
+              </Button>
+            </Link>
+          </div>
           {orders.map((order) => (
             <Card key={order.id}>
               <CardHeader className="flex flex-row items-start justify-between pb-3">

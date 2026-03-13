@@ -98,19 +98,6 @@ async function handleClassBooking(
       status: "confirmed",
       stripe_payment_intent_id: session.payment_intent as string,
     });
-
-    // Decrement available spots
-    const { data: cls } = await supabase
-      .from("classes")
-      .select("spots_remaining")
-      .eq("id", class_id)
-      .single();
-    if (cls && cls.spots_remaining > 0) {
-      await supabase
-        .from("classes")
-        .update({ spots_remaining: cls.spots_remaining - 1 })
-        .eq("id", class_id);
-    }
   }
 }
 

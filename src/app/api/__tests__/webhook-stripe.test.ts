@@ -23,7 +23,6 @@ function makeSupabase() {
   const insert = vi.fn().mockReturnValue({ select: insertSelect });
   const single = vi.fn().mockResolvedValue({ data: null, error: null });
   // supports: .select().eq().eq().single()  (class booking lookup)
-  //           .select().eq().single()        (classes spots_remaining lookup)
   //       and .select().in()                (products lookup in handleMerchOrder)
   const selectResult = {
     eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }), single }),
@@ -93,8 +92,8 @@ describe("POST /api/webhooks/stripe", () => {
     expect(mockFrom).toHaveBeenCalledWith("bookings");
   });
 
-  it("decrements spots_remaining after a new class booking", async () => {
-    const mockClassUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+  it("does not manually update classes table on new booking (DB trigger owns spot decrement)", async () => {
+    const mockClassUpdate = vi.fn();
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "bookings") {
@@ -107,14 +106,7 @@ describe("POST /api/webhooks/stripe", () => {
         };
       }
       if (table === "classes") {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({ data: { spots_remaining: 5 }, error: null }),
-            }),
-          }),
-          update: mockClassUpdate,
-        };
+        return { update: mockClassUpdate };
       }
       return { select: vi.fn(), insert: vi.fn(), update: vi.fn() };
     });
@@ -126,7 +118,7 @@ describe("POST /api/webhooks/stripe", () => {
 
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
-    expect(mockClassUpdate).toHaveBeenCalledWith({ spots_remaining: 4 });
+    expect(mockClassUpdate).not.toHaveBeenCalled();
   });
 
   it("updates existing booking on class_booking if one already exists", async () => {
