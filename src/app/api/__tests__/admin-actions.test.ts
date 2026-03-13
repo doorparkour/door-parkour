@@ -89,8 +89,9 @@ function productFormData(overrides: Record<string, string> = {}): FormData {
     description: "Comfy",
     price: "25.00",
     inventory: "10",
-    slug: "door-parkour-t-shirt",
+    slug: "door-parkour-t-shirt-m",
     image_url: "",
+    size: "M",
     ...overrides,
   };
   Object.entries(defaults).forEach(([k, v]) => fd.append(k, v));
@@ -128,6 +129,13 @@ describe("requireAdmin guard", () => {
 // ── createClass ───────────────────────────────────────────────
 
 describe("createClass", () => {
+  it("throws when starts_at is in the past", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createClass(classFormData({ starts_at: "2020-01-01T10:00" }))
+    ).rejects.toThrow("Class must be scheduled in the future.");
+  });
+
   it("throws when DB insert fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "duplicate key" } }) as never
@@ -215,10 +223,11 @@ describe("createProduct", () => {
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Door Parkour T-Shirt",
-        slug: "door-parkour-t-shirt",
+        slug: "door-parkour-t-shirt-m",
         price_cents: 2500,
         inventory: 10,
         is_active: true,
+        size: "M",
       })
     );
   });
@@ -240,6 +249,16 @@ describe("createProduct", () => {
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({ on_demand: true })
+    );
+  });
+
+  it("stores null size for accessories (no size in formData)", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createProduct(productFormData({ size: "" }))
+    ).rejects.toThrow("REDIRECT:/admin/products");
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ size: null })
     );
   });
 
@@ -277,7 +296,7 @@ describe("updateProduct", () => {
       updateProduct("prod-1", productFormData({ is_active: "on" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, is_active: true })
+      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, is_active: true, size: "M" })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
   });
