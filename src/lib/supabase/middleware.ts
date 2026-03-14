@@ -33,6 +33,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  const isAuthRoute = pathname === "/login" || pathname === "/signup";
+  if (isAuthRoute && user) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   const isDashboardRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/profile") ||

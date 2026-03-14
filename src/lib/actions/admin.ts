@@ -64,7 +64,7 @@ export async function createClass(formData: FormData) {
   redirect("/admin/classes");
 }
 
-export async function deleteClass(id: string) {
+export async function deleteClass(id: string): Promise<{ error?: string }> {
   const supabase = await requireAdmin();
 
   const { count } = await supabase
@@ -74,16 +74,18 @@ export async function deleteClass(id: string) {
     .in("status", ["confirmed", "waitlist"]);
 
   if (count && count > 0) {
-    throw new Error(
-      "This class has active bookings. Cancel it instead to notify and refund participants."
-    );
+    return {
+      error:
+        "This class has active bookings. Cancel it instead to notify and refund participants.",
+    };
   }
 
   const { error } = await supabase.from("classes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
+  return {};
 }
 
 export async function cancelClass(id: string) {
@@ -235,8 +237,17 @@ export async function createProduct(formData: FormData) {
   redirect("/admin/products");
 }
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(id: string): Promise<{ error?: string }> {
   const supabase = await requireAdmin();
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("status")
+    .eq("id", id)
+    .single();
+  if (product?.status === "archived") {
+    return { error: "Archived products cannot be deleted." };
+  }
 
   const { count } = await supabase
     .from("order_items")
@@ -244,12 +255,44 @@ export async function deleteProduct(id: string) {
     .eq("product_id", id);
 
   if (count && count > 0) {
-    throw new Error(
-      "This product has order history and can't be deleted. Set it to Inactive instead."
-    );
+    return {
+      error:
+        "This product has order history and can't be deleted. Set it to Archived instead.",
+    };
   }
 
   const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/products");
+  revalidatePath("/merch");
+  return {};
+}
+
+export async function archiveProduct(id: string) {
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase
+    .from("products")
+    .update({ status: "archived" })
+    .eq("id", id)
+    .in("status", ["active", "draft"]);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/products");
+  revalidatePath("/merch");
+}
+
+export async function unarchiveProduct(id: string) {
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase
+    .from("products")
+    .update({ status: "active" })
+    .eq("id", id)
+    .eq("status", "archived");
+
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin/products");
@@ -258,6 +301,15 @@ export async function deleteProduct(id: string) {
 
 export async function updateProduct(id: string, formData: FormData) {
   const supabase = await requireAdmin();
+
+  const { data: existing } = await supabase
+    .from("products")
+    .select("status")
+    .eq("id", id)
+    .single();
+  if (existing?.status === "archived") {
+    throw new Error("Archived products cannot be edited.");
+  }
 
   const inventoryRaw = formData.get("inventory") as string;
   const onDemand = formData.get("on_demand") === "on";

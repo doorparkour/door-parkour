@@ -30,12 +30,12 @@ export default function Navbar({ user }: NavbarProps) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/login");
     router.refresh();
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-dp-teal/95 backdrop-blur-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-dp-teal">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">

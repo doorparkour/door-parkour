@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateProduct } from "@/lib/actions/admin";
 import ProductForm from "@/components/admin/ProductForm";
@@ -20,6 +20,7 @@ export default async function EditProductPage({
     .single();
 
   if (!product) notFound();
+  if (product.status === "archived") redirect("/admin/products?status=archived");
 
   const action = updateProduct.bind(null, id);
 

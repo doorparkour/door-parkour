@@ -21,6 +21,7 @@ import DashboardSidebar from "./DashboardSidebar";
 interface DashboardHeaderProps {
   user: User;
   profile: { full_name: string | null; avatar_url: string | null } | null;
+  isAdmin?: boolean;
 }
 
 function getInitials(name: string | null | undefined) {
@@ -35,18 +36,18 @@ function getInitials(name: string | null | undefined) {
   return "?";
 }
 
-export default function DashboardHeader({ user, profile }: DashboardHeaderProps) {
+export default function DashboardHeader({ user, profile, isAdmin }: DashboardHeaderProps) {
   const router = useRouter();
 
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/login");
     router.refresh();
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b bg-white px-4 lg:px-8">
       {/* Mobile menu */}
       <Sheet>
         <SheetTrigger asChild>
@@ -58,7 +59,7 @@ export default function DashboardHeader({ user, profile }: DashboardHeaderProps)
           <SheetHeader className="sr-only">
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
-          <DashboardSidebar inSheet />
+          <DashboardSidebar inSheet isAdmin={isAdmin} />
         </SheetContent>
       </Sheet>
 

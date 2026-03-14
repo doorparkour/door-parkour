@@ -75,7 +75,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
     }
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/login");
   }
 
   return (

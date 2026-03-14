@@ -54,14 +54,7 @@ export default async function ClassesPage() {
                 No upcoming classes posted yet
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Class schedule updates coming soon. Check back or{" "}
-                <a
-                  href="/contact"
-                  className="text-dp-orange underline underline-offset-2"
-                >
-                  get in touch
-                </a>{" "}
-                to be notified.
+                Check back for upcoming class schedule updates.
               </p>
             </div>
           ) : (

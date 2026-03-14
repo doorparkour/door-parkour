@@ -59,26 +59,28 @@ export default function CancelClassButton({
           <Ban className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent className="text-left">
+        <AlertDialogHeader className="place-items-start text-left">
           <AlertDialogTitle>Cancel &ldquo;{title}&rdquo;?</AlertDialogTitle>
-          <AlertDialogDescription>
-            {bookedCount > 0 ? (
-              <>
-                This class has{" "}
-                <strong>
-                  {bookedCount} active booking{bookedCount !== 1 ? "s" : ""}
-                </strong>
-                . Cancelling will:
-                <ul className="mt-2 list-disc pl-5 space-y-1">
-                  <li>Cancel all bookings</li>
-                  <li>Issue automatic Stripe refunds</li>
-                  <li>Send a cancellation email to each participant</li>
-                </ul>
-              </>
-            ) : (
-              "This class has no active bookings. It will be marked as cancelled."
-            )}
+          <AlertDialogDescription asChild>
+            <div className="text-sm text-muted-foreground text-left">
+              {bookedCount > 0 ? (
+                <>
+                  This class has{" "}
+                  <strong>
+                    {bookedCount} active booking{bookedCount !== 1 ? "s" : ""}
+                  </strong>
+                  . Cancelling will:
+                  <ul className="mt-2 list-disc pl-6 space-y-1">
+                    <li>Cancel all bookings</li>
+                    <li>Issue automatic Stripe refunds</li>
+                    <li>Send a cancellation email to each participant</li>
+                  </ul>
+                </>
+              ) : (
+                "This class has no active bookings. It will be marked as cancelled."
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

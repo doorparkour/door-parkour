@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LayoutGrid, Calendar, ShoppingBag } from "lucide-react";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 export default async function AdminLayout({
   children,
@@ -60,11 +61,7 @@ export default async function AdminLayout({
 
       {/* Main content */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center border-b bg-white px-6 lg:px-8">
-          <span className="text-sm font-semibold text-dp-teal uppercase tracking-wide">
-            Admin Panel
-          </span>
-        </header>
+        <AdminHeader />
         <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>
     </div>

@@ -17,7 +17,7 @@ import { Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface DeleteButtonProps {
-  action: () => Promise<void>;
+  action: () => Promise<{ error?: string }>;
   label: string;
 }
 
@@ -27,11 +27,9 @@ export default function DeleteButton({ action, label }: DeleteButtonProps) {
 
   function handleConfirm() {
     startTransition(async () => {
-      try {
-        await action();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : `Failed to delete ${label}`;
-        toast.error(`Failed to delete ${label}`, { description: message });
+      const result = await action();
+      if (result?.error) {
+        toast.error(`Failed to delete ${label}`, { description: result.error });
         setOpen(false);
       }
     });

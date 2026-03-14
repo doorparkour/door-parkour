@@ -306,7 +306,7 @@ describe("updateProduct", () => {
 // ── deleteClass ───────────────────────────────────────────────
 
 describe("deleteClass", () => {
-  it("throws when active bookings exist", async () => {
+  it("returns error when active bookings exist", async () => {
     const inFn = vi.fn().mockResolvedValue({ data: null, count: 2, error: null });
     vi.mocked(createClient).mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
@@ -315,19 +315,22 @@ describe("deleteClass", () => {
         insert: mockInsert, update: mockUpdate, delete: mockDelete,
       }),
     } as never);
-    await expect(deleteClass("class-1")).rejects.toThrow("active bookings");
+    const result = await deleteClass("class-1");
+    expect(result?.error).toContain("active bookings");
   });
 
-  it("throws when DB delete fails", async () => {
+  it("returns error when DB delete fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "foreign key violation" } }) as never
     );
-    await expect(deleteClass("class-1")).rejects.toThrow("foreign key violation");
+    const result = await deleteClass("class-1");
+    expect(result?.error).toContain("foreign key violation");
   });
 
   it("targets correct record and revalidates both paths on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await deleteClass("class-1");
+    const result = await deleteClass("class-1");
+    expect(result?.error).toBeUndefined();
     expect(mockEq).toHaveBeenCalledWith("id", "class-1");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/classes");
     expect(revalidatePath).toHaveBeenCalledWith("/classes");

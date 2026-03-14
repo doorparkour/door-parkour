@@ -4,17 +4,24 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil } from "lucide-react";
-import DeleteButton from "@/components/admin/DeleteButton";
 import CancelClassButton from "@/components/admin/CancelClassButton";
-import { deleteClass, cancelClass } from "@/lib/actions/admin";
+import { cancelClass } from "@/lib/actions/admin";
 
 export const metadata: Metadata = { title: "Admin — Classes" };
 
-export default async function AdminClassesPage() {
+export default async function AdminClassesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status } = await searchParams;
+  const activeTab = status === "cancelled" ? "cancelled" : "active";
+
   const supabase = await createClient();
   const { data: classes } = await supabase
     .from("classes")
     .select("*")
+    .eq("is_cancelled", activeTab === "cancelled")
     .order("starts_at", { ascending: false });
 
   // Fetch active booking counts per class
@@ -48,9 +55,34 @@ export default async function AdminClassesPage() {
         </Button>
       </div>
 
+      <div className="flex gap-2">
+        <Link
+          href="/admin/classes"
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === "active"
+              ? "bg-dp-teal text-white"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Active
+        </Link>
+        <Link
+          href="/admin/classes?status=cancelled"
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === "cancelled"
+              ? "bg-dp-teal text-white"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Cancelled
+        </Link>
+      </div>
+
       <div className="rounded-lg border bg-white overflow-hidden">
         {!classes?.length ? (
-          <p className="p-6 text-sm text-muted-foreground">No classes yet.</p>
+          <p className="p-6 text-sm text-muted-foreground">
+            {activeTab === "cancelled" ? "No cancelled classes." : "No classes yet."}
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/40">
@@ -113,10 +145,6 @@ export default async function AdminClassesPage() {
                             />
                           </>
                         )}
-                        <DeleteButton
-                          label={cls.title}
-                          action={deleteClass.bind(null, cls.id)}
-                        />
                       </div>
                     </td>
                   </tr>
