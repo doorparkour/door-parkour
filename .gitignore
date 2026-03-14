@@ -20,6 +20,9 @@
 # production
 /build
 
+# docs (feature map, test plan)
+/docs
+
 # misc
 .DS_Store
 *.pem
