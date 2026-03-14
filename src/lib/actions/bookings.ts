@@ -100,6 +100,7 @@ export async function cancelBooking(bookingId: string) {
 
   revalidatePath("/bookings");
   revalidatePath("/dashboard");
+  revalidatePath("/classes");
 
   return { success: true, refundEligible };
 }
