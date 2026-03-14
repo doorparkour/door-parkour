@@ -64,30 +64,6 @@ export async function createClass(formData: FormData) {
   redirect("/admin/classes");
 }
 
-export async function deleteClass(id: string): Promise<{ error?: string }> {
-  const supabase = await requireAdmin();
-
-  const { count } = await supabase
-    .from("bookings")
-    .select("id", { count: "exact", head: true })
-    .eq("class_id", id)
-    .in("status", ["confirmed", "waitlist"]);
-
-  if (count && count > 0) {
-    return {
-      error:
-        "This class has active bookings. Cancel it instead to notify and refund participants.",
-    };
-  }
-
-  const { error } = await supabase.from("classes").delete().eq("id", id);
-  if (error) return { error: error.message };
-
-  revalidatePath("/admin/classes");
-  revalidatePath("/classes");
-  return {};
-}
-
 export async function cancelClass(id: string) {
   const supabase = await requireAdmin();
   const adminSupabase = getAdminSupabase();

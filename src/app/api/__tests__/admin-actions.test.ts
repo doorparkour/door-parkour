@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createClass,
   updateClass,
-  deleteClass,
   createProduct,
   updateProduct,
   deleteProduct,
+  archiveProduct,
+  unarchiveProduct,
 } from "@/lib/actions/admin";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
@@ -31,8 +32,17 @@ const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 const mockEq = vi.fn();
+const mockUpdateEq = vi.fn();
+const mockIn = vi.fn().mockResolvedValue({ data: null, error: null });
 
-mockUpdate.mockReturnValue({ eq: mockEq });
+// update().eq() returns thenable with .eq and .in for chaining
+mockUpdateEq.mockReturnValue({
+  eq: mockEq,
+  in: mockIn,
+  then: (resolve: (v: unknown) => void, reject?: (v: unknown) => void) =>
+    mockEq().then(resolve, reject),
+});
+mockUpdate.mockReturnValue({ eq: mockUpdateEq });
 mockDelete.mockReturnValue({ eq: mockEq });
 
 function makeSupabase({
@@ -101,7 +111,14 @@ function productFormData(overrides: Record<string, string> = {}): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUpdate.mockReturnValue({ eq: mockEq });
+  mockIn.mockResolvedValue({ data: null, error: null });
+  mockUpdateEq.mockReturnValue({
+    eq: mockEq,
+    in: mockIn,
+    then: (resolve: (v: unknown) => void, reject?: (v: unknown) => void) =>
+      mockEq().then(resolve, reject),
+  });
+  mockUpdate.mockReturnValue({ eq: mockUpdateEq });
   mockDelete.mockReturnValue({ eq: mockEq });
 });
 
@@ -200,7 +217,7 @@ describe("updateClass", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Intro to Parkour", is_published: true })
     );
-    expect(mockEq).toHaveBeenCalledWith("id", "class-1");
+    expect(mockUpdateEq).toHaveBeenCalledWith("id", "class-1");
   });
 });
 
@@ -282,6 +299,38 @@ describe("createProduct", () => {
 // ── updateProduct ─────────────────────────────────────────────
 
 describe("updateProduct", () => {
+  it("throws when product is archived", async () => {
+    const profileSingle = vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null });
+    const productSingle = vi.fn().mockResolvedValue({ data: { status: "archived" }, error: null });
+    const from = vi.fn().mockImplementation((table: string) => {
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single: profileSingle }),
+          }),
+          insert: mockInsert,
+          update: mockUpdate,
+          delete: mockDelete,
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single: productSingle }),
+        }),
+        insert: mockInsert,
+        update: mockUpdate,
+        delete: mockDelete,
+      };
+    });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      from,
+    } as never);
+    await expect(updateProduct("prod-1", productFormData())).rejects.toThrow(
+      "Archived products cannot be edited"
+    );
+  });
+
   it("throws when DB update fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "not found" } }) as never
@@ -299,58 +348,105 @@ describe("updateProduct", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, status: "active", size: "M" })
     );
-    expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
-  });
-});
-
-// ── deleteClass ───────────────────────────────────────────────
-
-describe("deleteClass", () => {
-  it("returns error when active bookings exist", async () => {
-    const inFn = vi.fn().mockResolvedValue({ data: null, count: 2, error: null });
-    vi.mocked(createClient).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
-      from: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { role: "admin" } }), in: inFn }) }),
-        insert: mockInsert, update: mockUpdate, delete: mockDelete,
-      }),
-    } as never);
-    const result = await deleteClass("class-1");
-    expect(result?.error).toContain("active bookings");
-  });
-
-  it("returns error when DB delete fails", async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      makeSupabase({ dbError: { message: "foreign key violation" } }) as never
-    );
-    const result = await deleteClass("class-1");
-    expect(result?.error).toContain("foreign key violation");
-  });
-
-  it("targets correct record and revalidates both paths on success", async () => {
-    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    const result = await deleteClass("class-1");
-    expect(result?.error).toBeUndefined();
-    expect(mockEq).toHaveBeenCalledWith("id", "class-1");
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/classes");
-    expect(revalidatePath).toHaveBeenCalledWith("/classes");
+    expect(mockUpdateEq).toHaveBeenCalledWith("id", "prod-1");
   });
 });
 
 // ── deleteProduct ─────────────────────────────────────────────
 
 describe("deleteProduct", () => {
-  it("throws when DB delete fails", async () => {
+  it("returns error when product is archived", async () => {
+    const single = vi.fn().mockResolvedValueOnce({ data: { role: "admin" }, error: null });
+    single.mockResolvedValueOnce({ data: { status: "archived" }, error: null });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single,
+            in: vi.fn().mockResolvedValue({ data: null, count: 0, error: null }),
+          }),
+        }),
+        insert: mockInsert,
+        update: mockUpdate,
+        delete: mockDelete,
+      }),
+    } as never);
+    const result = await deleteProduct("prod-1");
+    expect(result?.error).toContain("Archived");
+  });
+
+  it("returns error when DB delete fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "foreign key violation" } }) as never
     );
-    await expect(deleteProduct("prod-1")).rejects.toThrow("foreign key violation");
+    const result = await deleteProduct("prod-1");
+    expect(result?.error).toContain("foreign key violation");
   });
 
   it("targets correct record and revalidates both paths on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await deleteProduct("prod-1");
+    const result = await deleteProduct("prod-1");
+    expect(result?.error).toBeUndefined();
     expect(mockEq).toHaveBeenCalledWith("id", "prod-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
+    expect(revalidatePath).toHaveBeenCalledWith("/merch");
+  });
+});
+
+// ── archiveProduct ────────────────────────────────────────────
+
+describe("archiveProduct", () => {
+  it("throws when DB update fails", async () => {
+    const mockIn = vi.fn().mockResolvedValue({ data: null, error: { message: "constraint" } });
+    const mockUpdateEq = vi.fn().mockReturnValue({ in: mockIn });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { role: "admin" } }) }),
+        }),
+        insert: mockInsert,
+        update: vi.fn().mockReturnValue({ eq: mockUpdateEq }),
+        delete: mockDelete,
+      }),
+    } as never);
+    await expect(archiveProduct("prod-1")).rejects.toThrow("constraint");
+  });
+
+  it("revalidates both paths on success", async () => {
+    const mockIn = vi.fn().mockResolvedValue({ data: null, error: null });
+    const mockUpdateEq = vi.fn().mockReturnValue({ in: mockIn });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { role: "admin" } }) }),
+        }),
+        insert: mockInsert,
+        update: vi.fn().mockReturnValue({ eq: mockUpdateEq }),
+        delete: mockDelete,
+      }),
+    } as never);
+    await archiveProduct("prod-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
+    expect(revalidatePath).toHaveBeenCalledWith("/merch");
+  });
+});
+
+// ── unarchiveProduct ─────────────────────────────────────────
+
+describe("unarchiveProduct", () => {
+  it("throws when DB update fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ dbError: { message: "not found" } }) as never
+    );
+    await expect(unarchiveProduct("prod-1")).rejects.toThrow("not found");
+  });
+
+  it("revalidates both paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await unarchiveProduct("prod-1");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
     expect(revalidatePath).toHaveBeenCalledWith("/merch");
   });
