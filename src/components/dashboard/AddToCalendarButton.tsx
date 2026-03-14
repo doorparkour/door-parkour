@@ -1,6 +1,13 @@
 "use client";
 
-import { AddToCalendarButton } from "add-to-calendar-button-react";
+import { Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Props = {
   title: string;
@@ -9,7 +16,101 @@ type Props = {
   location: string;
 };
 
-export default function AddToCalendarButtonWrapper({
+const TZ = "America/Chicago";
+
+function formatGoogleDate(d: Date): string {
+  const y = d.toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: TZ,
+  }).replace(/-/g, "");
+  const t = d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: TZ,
+  }).replace(/:/g, "");
+  return `${y}T${t}`;
+}
+
+function formatICSDate(d: Date): string {
+  const y = d.toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: TZ,
+  }).replace(/-/g, "");
+  const t = d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: TZ,
+  }).replace(/:/g, "");
+  return `${y}T${t}`;
+}
+
+function escapeICS(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function buildGoogleCalendarUrl(
+  title: string,
+  start: Date,
+  end: Date,
+  location: string
+): string {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${formatGoogleDate(start)}/${formatGoogleDate(end)}`,
+    ctz: TZ,
+    location,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function buildICS(
+  title: string,
+  start: Date,
+  end: Date,
+  location: string
+): string {
+  const uid = `door-parkour-${start.getTime()}@doorparkour.com`;
+  const now = new Date();
+  const dtstamp = now.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Door Parkour//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtstamp}`,
+    `DTSTART;TZID=${TZ}:${formatICSDate(start)}`,
+    `DTEND;TZID=${TZ}:${formatICSDate(end)}`,
+    `SUMMARY:${escapeICS(title)}`,
+    `LOCATION:${escapeICS(location)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
+function downloadICS(ics: string, filename: string) {
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export default function AddToCalendarButton({
   title,
   startsAt,
   durationMins,
@@ -18,23 +119,31 @@ export default function AddToCalendarButtonWrapper({
   const start = new Date(startsAt);
   const end = new Date(start.getTime() + durationMins * 60 * 1000);
 
-  const formatDate = (d: Date) =>
-    d.toLocaleDateString("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" });
-  const formatTime = (d: Date) =>
-    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const googleUrl = buildGoogleCalendarUrl(title, start, end, location);
+  const ics = buildICS(title, start, end, location);
+  const safeTitle = title.replace(/[^a-z0-9]/gi, "-").slice(0, 40);
+  const filename = `${safeTitle}.ics`;
 
   return (
-    <AddToCalendarButton
-      name={title}
-      options={["Apple", "Google", "Outlook.com", "Yahoo"]}
-      location={location}
-      startDate={formatDate(start)}
-      endDate={formatDate(end)}
-      startTime={formatTime(start)}
-      endTime={formatTime(end)}
-      timeZone="America/Chicago"
-      buttonStyle="default"
-      size="5"
-    />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Calendar className="mr-2 h-4 w-4" />
+          Add to Calendar
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuItem asChild>
+          <a href={googleUrl} target="_blank" rel="noopener noreferrer">
+            Add to Google Calendar
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => downloadICS(ics, filename)}
+        >
+          Download .ics (Apple, Outlook, etc.)
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
