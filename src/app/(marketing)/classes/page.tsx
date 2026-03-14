@@ -29,16 +29,31 @@ export default async function ClassesPage() {
     supabase.auth.getUser(),
   ]);
 
-  const { data: profile } =
+  const classIds = (classes ?? []).map((c) => c.id);
+  const [profileResult, bookingsResult] =
     user != null
-      ? await supabase
-          .from("profiles")
-          .select("waiver_signed_at")
-          .eq("id", user.id)
-          .single()
-      : { data: null };
+      ? await Promise.all([
+          supabase
+            .from("profiles")
+            .select("waiver_signed_at")
+            .eq("id", user.id)
+            .single(),
+          classIds.length > 0
+            ? supabase
+                .from("bookings")
+                .select("class_id")
+                .eq("user_id", user.id)
+                .eq("status", "confirmed")
+                .in("class_id", classIds)
+            : Promise.resolve({ data: [] as { class_id: string }[] }),
+        ])
+      : [null, null];
 
+  const profile = profileResult?.data ?? null;
   const waiverSigned = user != null ? !!profile?.waiver_signed_at : undefined;
+  const confirmedClassIds = new Set(
+    (bookingsResult?.data ?? []).map((b) => b.class_id)
+  );
 
   if (error) {
     console.error("Failed to load classes:", error.message);
@@ -77,7 +92,12 @@ export default async function ClassesPage() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {classes.map((cls) => (
-                <ClassCard key={cls.id} cls={cls} waiverSigned={waiverSigned} />
+                <ClassCard
+                  key={cls.id}
+                  cls={cls}
+                  waiverSigned={waiverSigned}
+                  isAlreadyBooked={user != null && confirmedClassIds.has(cls.id)}
+                />
               ))}
             </div>
           )}

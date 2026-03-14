@@ -16,6 +16,8 @@ interface ClassCardProps {
   cls: ClassRow;
   /** When logged in and false, show Sign Waiver instead of Book. Undefined when not logged in. */
   waiverSigned?: boolean;
+  /** When true, show "Already Booked" instead of Book Now. */
+  isAlreadyBooked?: boolean;
 }
 
 function formatDate(isoString: string) {
@@ -40,7 +42,7 @@ function formatPrice(cents: number) {
 
 const FALLBACK_IMG = "/door-parkour-banner.jpg";
 
-export default function ClassCard({ cls, waiverSigned }: ClassCardProps) {
+export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [imgSrc, setImgSrc] = useState(cls.image_url || FALLBACK_IMG);
@@ -146,6 +148,14 @@ export default function ClassCard({ cls, waiverSigned }: ClassCardProps) {
               <FileSignature className="mr-1.5 h-3.5 w-3.5" />
               Sign Waiver
             </Link>
+          </Button>
+        ) : isAlreadyBooked ? (
+          <Button
+            size="sm"
+            disabled
+            className="bg-muted text-muted-foreground cursor-default"
+          >
+            Already Booked
           </Button>
         ) : (
           <Button
