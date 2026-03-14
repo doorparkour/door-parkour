@@ -13,6 +13,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("waiver_signed_at")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.waiver_signed_at) {
+    return NextResponse.json(
+      { error: "You must sign the waiver before booking a class." },
+      { status: 403 }
+    );
+  }
+
   const { classId } = await request.json();
 
   if (!classId) {

@@ -19,6 +19,7 @@ export type Database = {
           emergency_contact_phone: string | null;
           date_of_birth: string | null;
           shirt_size: string | null;
+          waiver_signed_at: string | null;
           role: string;
           created_at: string;
           updated_at: string;
@@ -32,6 +33,7 @@ export type Database = {
           emergency_contact_phone?: string | null;
           date_of_birth?: string | null;
           shirt_size?: string | null;
+          waiver_signed_at?: string | null;
           role?: string;
           created_at?: string;
           updated_at?: string;
@@ -45,6 +47,7 @@ export type Database = {
           emergency_contact_phone?: string | null;
           date_of_birth?: string | null;
           shirt_size?: string | null;
+          waiver_signed_at?: string | null;
           role?: string;
           updated_at?: string;
         };

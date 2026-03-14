@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, ShoppingBag, User, ShieldCheck, Store } from "lucide-react";
+import { LayoutDashboard, Calendar, ShoppingBag, User, FileSignature, ShieldCheck, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/bookings", icon: Calendar, label: "My Bookings" },
   { href: "/orders", icon: ShoppingBag, label: "My Orders" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/waiver", icon: FileSignature, label: "Waiver" },
 ];
 
 export default function DashboardSidebar({

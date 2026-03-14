@@ -15,13 +15,30 @@ export const revalidate = 60;
 export default async function ClassesPage() {
   const supabase = await createClient();
 
-  const { data: classes, error } = await supabase
-    .from("classes")
-    .select("*")
-    .eq("is_published", true)
-    .eq("is_cancelled", false)
-    .gte("starts_at", new Date().toISOString())
-    .order("starts_at", { ascending: true });
+  const [
+    { data: classes, error },
+    { data: { user } },
+  ] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("*")
+      .eq("is_published", true)
+      .eq("is_cancelled", false)
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true }),
+    supabase.auth.getUser(),
+  ]);
+
+  const { data: profile } =
+    user != null
+      ? await supabase
+          .from("profiles")
+          .select("waiver_signed_at")
+          .eq("id", user.id)
+          .single()
+      : { data: null };
+
+  const waiverSigned = user != null ? !!profile?.waiver_signed_at : undefined;
 
   if (error) {
     console.error("Failed to load classes:", error.message);
@@ -60,7 +77,7 @@ export default async function ClassesPage() {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {classes.map((cls) => (
-                <ClassCard key={cls.id} cls={cls} />
+                <ClassCard key={cls.id} cls={cls} waiverSigned={waiverSigned} />
               ))}
             </div>
           )}

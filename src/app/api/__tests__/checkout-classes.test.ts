@@ -30,16 +30,19 @@ function chain(result: object) {
 function makeSupabase({
   user = { id: "user-1", email: "u@test.com" },
   authed = true,
+  profile = { waiver_signed_at: "2026-01-01T00:00:00Z" },
   cls = { id: "class-1", title: "Intro", price_cents: 4500, spots_remaining: 5, location: "Park", starts_at: new Date().toISOString() },
   classError = null,
   existingBooking = null,
 }: {
   user?: object | null;
   authed?: boolean;
+  profile?: { waiver_signed_at: string | null } | null;
   cls?: object | null;
   classError?: object | null;
   existingBooking?: object | null;
 } = {}) {
+  const profileChain = chain({ data: profile, error: null });
   const classChain = chain({ data: cls, error: classError });
   const bookingChain = chain({ data: existingBooking, error: null });
 
@@ -51,6 +54,7 @@ function makeSupabase({
       }),
     },
     from: vi.fn().mockImplementation((table: string) => {
+      if (table === "profiles") return profileChain;
       if (table === "classes") return classChain;
       if (table === "bookings") return bookingChain;
     }),
@@ -72,6 +76,18 @@ describe("POST /api/checkout/classes", () => {
 
     const res = await POST(makeRequest({ classId: "class-1" }));
     expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when waiver is not signed", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ profile: { waiver_signed_at: null } }) as never
+    );
+
+    const res = await POST(makeRequest({ classId: "class-1" }));
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({
+      error: "You must sign the waiver before booking a class.",
+    });
   });
 
   it("returns 400 when classId is missing", async () => {

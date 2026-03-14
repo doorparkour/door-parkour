@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Clock, Loader2, FileSignature } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Database } from "@/lib/supabase/types";
@@ -13,6 +14,8 @@ type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
 interface ClassCardProps {
   cls: ClassRow;
+  /** When logged in and false, show Sign Waiver instead of Book. Undefined when not logged in. */
+  waiverSigned?: boolean;
 }
 
 function formatDate(isoString: string) {
@@ -37,7 +40,7 @@ function formatPrice(cents: number) {
 
 const FALLBACK_IMG = "/door-parkour-banner.jpg";
 
-export default function ClassCard({ cls }: ClassCardProps) {
+export default function ClassCard({ cls, waiverSigned }: ClassCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [imgSrc, setImgSrc] = useState(cls.image_url || FALLBACK_IMG);
@@ -66,7 +69,13 @@ export default function ClassCard({ cls }: ClassCardProps) {
 
     const data = await res.json();
     if (!res.ok || !data.url) {
-      toast.error("Booking failed", { description: data.error ?? "Please try again." });
+      if (res.status === 403) {
+        toast.error("Sign waiver required", {
+          description: data.error ?? "You must sign the waiver before booking.",
+        });
+      } else {
+        toast.error("Booking failed", { description: data.error ?? "Please try again." });
+      }
       setLoading(false);
       return;
     }
@@ -127,15 +136,28 @@ export default function ClassCard({ cls }: ClassCardProps) {
         <span className="text-lg font-bold text-dp-teal">
           {formatPrice(cls.price_cents)}
         </span>
-        <Button
-          size="sm"
-          disabled={isFull || loading}
-          onClick={handleBook}
-          className="bg-dp-orange text-white hover:bg-dp-orange-dark disabled:opacity-50"
-        >
-          {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-          {isFull ? "Waitlist" : "Book Now"}
-        </Button>
+        {waiverSigned === false ? (
+          <Button
+            size="sm"
+            asChild
+            className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+          >
+            <Link href="/waiver?redirectTo=/classes">
+              <FileSignature className="mr-1.5 h-3.5 w-3.5" />
+              Sign Waiver
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            disabled={isFull || loading}
+            onClick={handleBook}
+            className="bg-dp-orange text-white hover:bg-dp-orange-dark disabled:opacity-50"
+          >
+            {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            {isFull ? "Waitlist" : "Book Now"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

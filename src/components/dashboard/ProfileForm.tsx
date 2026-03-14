@@ -25,8 +25,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CircleCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
@@ -191,6 +192,34 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Waiver */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Waiver</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {profile?.waiver_signed_at ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CircleCheck className="h-4 w-4 text-green-600" />
+              Waiver signed on{" "}
+              {new Intl.DateTimeFormat("en-US", {
+                dateStyle: "medium",
+              }).format(new Date(profile.waiver_signed_at))}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              You haven&apos;t signed the waiver yet.{" "}
+              <Link
+                href="/waiver"
+                className="font-medium text-dp-orange hover:text-dp-orange-dark"
+              >
+                Sign waiver
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
 
