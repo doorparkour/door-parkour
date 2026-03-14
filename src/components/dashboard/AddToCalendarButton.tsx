@@ -14,6 +14,7 @@ type Props = {
   startsAt: string;
   durationMins: number;
   location: string;
+  description?: string | null;
 };
 
 const TZ = "America/Chicago";
@@ -60,7 +61,8 @@ function buildGoogleCalendarUrl(
   title: string,
   start: Date,
   end: Date,
-  location: string
+  location: string,
+  description?: string | null
 ): string {
   const params = new URLSearchParams({
     action: "TEMPLATE",
@@ -69,6 +71,7 @@ function buildGoogleCalendarUrl(
     ctz: TZ,
     location,
   });
+  if (description?.trim()) params.set("details", description.trim());
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
@@ -76,13 +79,14 @@ function buildICS(
   title: string,
   start: Date,
   end: Date,
-  location: string
+  location: string,
+  description?: string | null
 ): string {
   const uid = `door-parkour-${start.getTime()}@doorparkour.com`;
   const now = new Date();
   const dtstamp = now.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
 
-  return [
+  const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//Door Parkour//EN",
@@ -93,9 +97,10 @@ function buildICS(
     `DTEND;TZID=${TZ}:${formatICSDate(end)}`,
     `SUMMARY:${escapeICS(title)}`,
     `LOCATION:${escapeICS(location)}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
+  ];
+  if (description?.trim()) lines.push(`DESCRIPTION:${escapeICS(description.trim())}`);
+  lines.push("END:VEVENT", "END:VCALENDAR");
+  return lines.join("\r\n");
 }
 
 function downloadICS(ics: string, filename: string) {
@@ -115,12 +120,13 @@ export default function AddToCalendarButton({
   startsAt,
   durationMins,
   location,
+  description,
 }: Props) {
   const start = new Date(startsAt);
   const end = new Date(start.getTime() + durationMins * 60 * 1000);
 
-  const googleUrl = buildGoogleCalendarUrl(title, start, end, location);
-  const ics = buildICS(title, start, end, location);
+  const googleUrl = buildGoogleCalendarUrl(title, start, end, location, description);
+  const ics = buildICS(title, start, end, location, description);
   const safeTitle = title.replace(/[^a-z0-9]/gi, "-").slice(0, 40);
   const filename = `${safeTitle}.ics`;
 

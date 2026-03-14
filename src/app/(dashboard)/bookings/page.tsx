@@ -18,6 +18,7 @@ const statusColors: Record<string, string> = {
 
 type ClassInfo = {
   title: string;
+  description: string | null;
   starts_at: string;
   duration_mins: number;
   location: string;
@@ -39,7 +40,7 @@ export default async function BookingsPage({
 
   const { data: allBookings } = await supabase
     .from("bookings")
-    .select("*, classes(title, starts_at, duration_mins, location, price_cents)")
+    .select("*, classes(title, description, starts_at, duration_mins, location, price_cents)")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
 
@@ -182,6 +183,7 @@ export default async function BookingsPage({
                         startsAt={cls.starts_at}
                         durationMins={cls.duration_mins}
                         location={cls.location}
+                        description={cls.description}
                       />
                       <CancelBookingButton bookingId={booking.id} />
                     </div>
