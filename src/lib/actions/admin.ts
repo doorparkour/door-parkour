@@ -9,6 +9,7 @@ import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { ClassCancellationEmail } from "@/lib/email/ClassCancellationEmail";
 import { ClassCancellationAdminEmail } from "@/lib/email/ClassCancellationAdminEmail";
+import { ManualRefundEmail } from "@/lib/email/ManualRefundEmail";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -159,6 +160,94 @@ export async function cancelClass(id: string) {
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
+}
+
+export async function refundBooking(bookingId: string): Promise<{ error?: string }> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const adminSupabase = getAdminSupabase();
+  const stripe = getStripe();
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .select("id, user_id, status, stripe_payment_intent_id, class_id")
+    .eq("id", bookingId)
+    .single();
+
+  if (bookingError || !booking) {
+    return { error: "Booking not found." };
+  }
+
+  if (!booking.stripe_payment_intent_id) {
+    return { error: "This booking has no payment to refund." };
+  }
+
+  if (["refunded", "partially_refunded"].includes(booking.status)) {
+    return { error: "This booking has already been refunded." };
+  }
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("title, starts_at, price_cents")
+    .eq("id", booking.class_id)
+    .single();
+
+  if (!cls) {
+    return { error: "Class not found." };
+  }
+
+  try {
+    await stripe.refunds.create({
+      payment_intent: booking.stripe_payment_intent_id,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Stripe refund failed";
+    return { error: msg };
+  }
+
+  await supabase
+    .from("bookings")
+    .update({ status: "refunded" })
+    .eq("id", bookingId);
+
+  const { data: userData } = await adminSupabase.auth.admin.getUserById(booking.user_id);
+  const email = userData?.user?.email;
+
+  if (email) {
+    const classDate = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Chicago",
+    }).format(new Date(cls.starts_at));
+
+    const priceDollars = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(cls.price_cents / 100);
+
+    await resend.emails.send({
+      from: "Door Parkour <noreply@doorparkour.com>",
+      to: email,
+      subject: `Refund Issued: ${cls.title}`,
+      html: await render(
+        ManualRefundEmail({
+          className: cls.title,
+          classDate,
+          priceDollars,
+        })
+      ),
+    });
+  }
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/bookings");
+
+  return {};
 }
 
 export async function updateClass(id: string, formData: FormData) {
