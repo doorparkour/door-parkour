@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/types";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag } from "lucide-react";
 import ProductCard from "@/components/marketing/ProductCard";
+import ApparelProductCard from "@/components/marketing/ApparelProductCard";
 import CartDrawer from "@/components/marketing/CartDrawer";
 
 export const metadata: Metadata = {
@@ -12,18 +14,53 @@ export const metadata: Metadata = {
 
 export const revalidate = 300;
 
+type Product = Database["public"]["Tables"]["products"]["Row"];
+
+function groupProducts(products: Product[]) {
+  const apparel = new Map<string, Product[]>();
+  const accessories: Product[] = [];
+  for (const p of products) {
+    if (p.size) {
+      const list = apparel.get(p.name) ?? [];
+      list.push(p);
+      apparel.set(p.name, list);
+    } else {
+      accessories.push(p);
+    }
+  }
+  return { apparel, accessories };
+}
+
 export default async function MerchPage() {
   const supabase = await createClient();
 
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("*")
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
+  const [
+    { data: products, error },
+    { data: { user } },
+  ] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*")
+      .eq("status", "active")
+      .order("created_at", { ascending: false }),
+    supabase.auth.getUser(),
+  ]);
 
   if (error) {
     console.error("Failed to load products:", error.message);
   }
+
+  const { data: profile } =
+    user != null
+      ? await supabase
+          .from("profiles")
+          .select("shirt_size")
+          .eq("id", user.id)
+          .single()
+      : { data: null };
+
+  const { apparel, accessories } = groupProducts(products ?? []);
+  const apparelGroups = Array.from(apparel.entries());
 
   return (
     <>
@@ -59,7 +96,14 @@ export default async function MerchPage() {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product) => (
+              {apparelGroups.map(([name, variants]) => (
+                <ApparelProductCard
+                  key={name}
+                  products={variants}
+                  defaultSize={profile?.shirt_size ?? null}
+                />
+              ))}
+              {accessories.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

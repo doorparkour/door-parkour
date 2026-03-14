@@ -1,0 +1,166 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/lib/store/cart";
+import { toast } from "sonner";
+import type { Database } from "@/lib/supabase/types";
+
+type Product = Database["public"]["Tables"]["products"]["Row"];
+
+const FALLBACK_IMG = "/door-parkour-banner.jpg";
+const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
+function formatPrice(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+interface ApparelProductCardProps {
+  products: Product[];
+  defaultSize: string | null;
+}
+
+export default function ApparelProductCard({
+  products,
+  defaultSize,
+}: ApparelProductCardProps) {
+  const addItem = useCart((s) => s.addItem);
+  const items = useCart((s) => s.items);
+
+  const availableSizes = products
+    .filter((p) => p.size)
+    .sort(
+      (a, b) =>
+        APPAREL_SIZES.indexOf((a.size ?? "M") as (typeof APPAREL_SIZES)[number]) -
+        APPAREL_SIZES.indexOf((b.size ?? "M") as (typeof APPAREL_SIZES)[number])
+    );
+
+  const preferredSize =
+    defaultSize && availableSizes.some((p) => p.size === defaultSize)
+      ? defaultSize
+      : availableSizes[0]?.size ?? "M";
+
+  const [selectedSize, setSelectedSize] = useState<string>(preferredSize);
+  const product = products.find((p) => p.size === selectedSize) ?? products[0];
+  const cartQuantity =
+    items.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const [imgSrc, setImgSrc] = useState(product.image_url || FALLBACK_IMG);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      setImgSrc(FALLBACK_IMG);
+    }
+  }, []);
+
+  useEffect(() => {
+    setImgSrc(product.image_url || FALLBACK_IMG);
+  }, [product.id]);
+
+  const isOutOfStock = !product.on_demand && product.inventory === 0;
+  const isCartFull =
+    !product.on_demand && cartQuantity >= product.inventory;
+  const showStock = !product.on_demand && product.inventory > 0;
+
+  function handleAddToCart() {
+    if (isCartFull) return;
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price_cents: product.price_cents,
+      image_url: product.image_url,
+      inventory: product.inventory,
+      on_demand: product.on_demand,
+    });
+    toast.success(`${product.name} (${selectedSize}) added to cart`);
+  }
+
+  return (
+    <Card className="flex flex-col overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
+      <div className="h-40 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={imgRef}
+          src={imgSrc}
+          alt={product.name}
+          className="h-full w-full object-cover object-center"
+          onError={() => setImgSrc(FALLBACK_IMG)}
+        />
+      </div>
+
+      <CardContent className="flex-1 pt-4 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-dp-teal text-sm">{product.name}</h3>
+          {isOutOfStock && (
+            <Badge variant="secondary" className="shrink-0 text-xs">
+              Out of stock
+            </Badge>
+          )}
+          {showStock && (
+            <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+              {product.inventory} left
+            </Badge>
+          )}
+        </div>
+        {product.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {product.description}
+          </p>
+        )}
+        <div className="space-y-2 pt-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Size
+          </label>
+          <Select value={selectedSize} onValueChange={setSelectedSize}>
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSizes.map((p) => (
+                <SelectItem
+                  key={p.id}
+                  value={p.size!}
+                  disabled={!p.on_demand && p.inventory === 0}
+                >
+                  {p.size}
+                  {!p.on_demand && p.inventory === 0 && " (out of stock)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex items-center justify-between border-t pt-4">
+        <span className="font-bold text-dp-teal">
+          {formatPrice(product.price_cents)}
+        </span>
+        <Button
+          size="sm"
+          disabled={isOutOfStock || isCartFull}
+          onClick={handleAddToCart}
+          className="bg-dp-orange text-white hover:bg-dp-orange-dark gap-1.5"
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+          Add to Cart
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}

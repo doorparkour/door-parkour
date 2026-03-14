@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,10 +37,13 @@ interface ProfileFormProps {
   email: string;
 }
 
+const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
 export default function ProfileForm({ profile, email }: ProfileFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shirtSize, setShirtSize] = useState<string>(profile?.shirt_size ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,7 +51,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
 
     const form = e.currentTarget;
     const getValue = (name: string) =>
-      (form.elements.namedItem(name) as HTMLInputElement).value;
+      (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement)?.value;
 
     const supabase = createClient();
     const { error } = await supabase
@@ -50,6 +60,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
         full_name: getValue("full_name") || null,
         phone: getValue("phone") || null,
         date_of_birth: getValue("date_of_birth") || null,
+        shirt_size: getValue("shirt_size") || null,
         emergency_contact_name: getValue("emergency_contact_name") || null,
         emergency_contact_phone: getValue("emergency_contact_phone") || null,
       })
@@ -123,6 +134,26 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
                 type="date"
                 defaultValue={profile?.date_of_birth ?? ""}
               />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="shirt_size">Shirt size</Label>
+              <input type="hidden" name="shirt_size" value={shirtSize} />
+              <Select value={shirtSize || "_"} onValueChange={(v) => setShirtSize(v === "_" ? "" : v)}>
+                <SelectTrigger id="shirt_size">
+                  <SelectValue placeholder="Select your size (used for merch)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_">Not set</SelectItem>
+                  {SHIRT_SIZES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Used to pre-select your size when buying apparel.
+              </p>
             </div>
           </div>
         </CardContent>
