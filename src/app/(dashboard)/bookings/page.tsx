@@ -185,7 +185,10 @@ export default async function BookingsPage({
                         location={cls.location}
                         description={cls.description}
                       />
-                      <CancelBookingButton bookingId={booking.id} />
+                      <CancelBookingButton
+                        bookingId={booking.id}
+                        startsAt={cls.starts_at}
+                      />
                     </div>
                   )}
                 </CardContent>

@@ -14,25 +14,58 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { cancelBooking } from "@/lib/actions/bookings";
 
-export default function CancelBookingButton({ bookingId }: { bookingId: string }) {
+const REFUND_HOURS = 24;
+
+function formatTimeUntil(startsAt: string): string {
+  const start = new Date(startsAt);
+  const now = new Date();
+  const ms = start.getTime() - now.getTime();
+
+  if (ms <= 0) return "the class has already started";
+
+  const totalHours = ms / (1000 * 60 * 60);
+  const days = Math.floor(totalHours / 24);
+  const hours = Math.floor(totalHours % 24);
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+
+  const parts: string[] = [];
+  if (days >= 1) parts.push(`${days} day${days !== 1 ? "s" : ""}`);
+  if (hours >= 1) parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
+  if (minutes >= 1 && days < 1) parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
+
+  return parts.length ? `${parts.join(" ")} in advance` : "less than 1 minute in advance";
+}
+
+type Props = {
+  bookingId: string;
+  startsAt: string;
+};
+
+export default function CancelBookingButton({ bookingId, startsAt }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const start = new Date(startsAt);
+  const now = new Date();
+  const hoursUntilClass = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
+  const refundEligible = hoursUntilClass >= REFUND_HOURS;
+  const timeUntil = formatTimeUntil(startsAt);
+
   async function handleCancel() {
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", bookingId);
+    const result = await cancelBooking(bookingId);
 
-    if (error) {
-      toast.error("Failed to cancel booking", { description: error.message });
+    if (result.error) {
+      toast.error("Failed to cancel booking", { description: result.error });
     } else {
-      toast.success("Booking cancelled");
+      toast.success(
+        result.refundEligible
+          ? "Booking cancelled. A refund will be issued within 5–10 business days."
+          : "Booking cancelled"
+      );
       setOpen(false);
       router.refresh();
     }
@@ -53,10 +86,23 @@ export default function CancelBookingButton({ bookingId }: { bookingId: string }
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Cancel this booking?</DialogTitle>
-          <DialogDescription>
-            This will free up your spot. Refund eligibility depends on how
-            close to the class date you are cancelling. This action cannot be
-            undone.
+          <DialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                You&apos;re canceling <strong>{timeUntil}</strong>.
+              </p>
+              <p>
+                Refunds require 24+ hours notice.{" "}
+                {refundEligible ? (
+                  <>You will receive a full refund.</>
+                ) : (
+                  <>No refund will be issued.</>
+                )}
+              </p>
+              <p className="text-muted-foreground">
+                This will free up your spot. This action cannot be undone.
+              </p>
+            </div>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
