@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
+import { groupProducts } from "@/lib/merch";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingBag } from "lucide-react";
 import ProductCard from "@/components/marketing/ProductCard";
@@ -13,23 +13,6 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 300;
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
-
-function groupProducts(products: Product[]) {
-  const apparel = new Map<string, Product[]>();
-  const accessories: Product[] = [];
-  for (const p of products) {
-    if (p.size) {
-      const list = apparel.get(p.name) ?? [];
-      list.push(p);
-      apparel.set(p.name, list);
-    } else {
-      accessories.push(p);
-    }
-  }
-  return { apparel, accessories };
-}
 
 export default async function MerchPage() {
   const supabase = await createClient();
