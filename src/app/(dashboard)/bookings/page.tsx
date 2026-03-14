@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AddToCalendarButton from "@/components/dashboard/AddToCalendarButton";
 import CancelBookingButton from "@/components/dashboard/CancelBookingButton";
 import { CalendarX, MapPin, Clock } from "lucide-react";
 import Link from "next/link";
@@ -174,8 +175,16 @@ export default async function BookingsPage({
                     </div>
                   )}
 
-                  {booking.status === "confirmed" && !isPast && (
-                    <CancelBookingButton bookingId={booking.id} />
+                  {booking.status === "confirmed" && !isPast && cls && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AddToCalendarButton
+                        title={cls.title}
+                        startsAt={cls.starts_at}
+                        durationMins={cls.duration_mins}
+                        location={cls.location}
+                      />
+                      <CancelBookingButton bookingId={booking.id} />
+                    </div>
                   )}
                 </CardContent>
               </Card>
