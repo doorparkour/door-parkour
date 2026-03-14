@@ -7,9 +7,31 @@ import {
   deleteProduct,
   archiveProduct,
   unarchiveProduct,
+  refundBooking,
 } from "@/lib/actions/admin";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/stripe/server", () => ({
+  getStripe: vi.fn(() => ({
+    refunds: { create: vi.fn().mockResolvedValue({}) },
+  })),
+}));
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: vi.fn(() => ({
+    auth: {
+      admin: {
+        getUserById: vi.fn().mockResolvedValue({
+          data: { user: { email: "customer@example.com" } },
+        }),
+      },
+    },
+  })),
+}));
+vi.mock("resend", () => ({
+  Resend: vi.fn().mockImplementation(function Resend() {
+    return { emails: { send: vi.fn().mockResolvedValue({}) } };
+  }),
+}));
 
 // redirect throws in real Next.js — mirror that so execution stops as expected
 vi.mock("next/navigation", () => ({
@@ -449,5 +471,124 @@ describe("unarchiveProduct", () => {
     await unarchiveProduct("prod-1");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/products");
     expect(revalidatePath).toHaveBeenCalledWith("/merch");
+  });
+});
+
+// ── refundBooking ────────────────────────────────────────────
+
+describe("refundBooking", () => {
+  const bookingId = "booking-1";
+  const booking = {
+    id: bookingId,
+    user_id: "user-1",
+    status: "confirmed",
+    stripe_payment_intent_id: "pi_xxx",
+    class_id: "class-1",
+  };
+  const cls = { title: "Intro", starts_at: "2026-06-06T10:00:00Z", price_cents: 4500 };
+
+  function makeRefundSupabase(opts: {
+    booking?: object | null;
+    bookingError?: { message: string } | null;
+    class?: object | null;
+    updateError?: { message: string } | null;
+  } = {}) {
+    const b = opts.booking ?? booking;
+    const c = opts.class ?? cls;
+    const single = vi.fn();
+    single
+      .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
+      .mockResolvedValueOnce({ data: b, error: opts.bookingError ?? null })
+      .mockResolvedValueOnce({ data: c, error: null });
+
+    const updateEq = vi.fn().mockResolvedValue({
+      data: null,
+      error: opts.updateError ?? null,
+    });
+
+    const from = vi.fn((table: string) => {
+      if (table === "bookings") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single }),
+          }),
+          update: vi.fn().mockReturnValue({ eq: updateEq }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        }),
+      };
+    });
+
+    return {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+    };
+  }
+
+  it("redirects when not admin", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ user: null }) as never
+    );
+    await expect(refundBooking(bookingId)).rejects.toThrow("REDIRECT:/login");
+  });
+
+  it("returns error when booking not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRefundSupabase({ booking: null, bookingError: { message: "not found" } }) as never
+    );
+    const result = await refundBooking(bookingId);
+    expect(result.error).toBe("Booking not found.");
+  });
+
+  it("returns error when no payment to refund", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRefundSupabase({
+        booking: { ...booking, stripe_payment_intent_id: null },
+      }) as never
+    );
+    const result = await refundBooking(bookingId);
+    expect(result.error).toBe("This booking has no payment to refund.");
+  });
+
+  it("returns error when already refunded", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRefundSupabase({ booking: { ...booking, status: "refunded" } }) as never
+    );
+    const result = await refundBooking(bookingId);
+    expect(result.error).toBe("This booking has already been refunded.");
+  });
+
+  it("returns error when class not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRefundSupabase({ class: null }) as never
+    );
+    const single = vi.fn();
+    single
+      .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
+      .mockResolvedValueOnce({ data: booking, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+    const from = vi.fn((table: string) => ({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({ single }),
+      }),
+      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+    }));
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+    } as never);
+    const result = await refundBooking(bookingId);
+    expect(result.error).toBe("Class not found.");
+  });
+
+  it("revalidates paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeRefundSupabase() as never);
+    const result = await refundBooking(bookingId);
+    expect(result.error).toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
+    expect(revalidatePath).toHaveBeenCalledWith("/bookings");
   });
 });
