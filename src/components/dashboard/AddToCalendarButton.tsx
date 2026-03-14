@@ -147,7 +147,7 @@ export default function AddToCalendarButton({
         <DropdownMenuItem
           onClick={() => downloadICS(ics, filename)}
         >
-          Download .ics (Apple, Outlook, etc.)
+          Add to Apple Calendar, Outlook, or other calendars
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
