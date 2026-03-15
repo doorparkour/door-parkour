@@ -94,13 +94,13 @@ export default function CancelBookingButton({ bookingId, startsAt }: Props) {
               <p>
                 Refunds require 24+ hours notice.{" "}
                 {refundEligible ? (
-                  <>You will receive a full refund.</>
+                  <>You&apos;ll receive a full refund, and your spot will be released for others.</>
                 ) : (
-                  <>No refund will be issued.</>
+                  <>
+                    No refund will be issued. Your spot will be released. This action cannot be
+                    undone.
+                  </>
                 )}
-              </p>
-              <p className="text-muted-foreground">
-                This will free up your spot. This action cannot be undone.
               </p>
             </div>
           </DialogDescription>
@@ -110,7 +110,7 @@ export default function CancelBookingButton({ bookingId, startsAt }: Props) {
             Keep Booking
           </Button>
           <Button
-            variant="destructive"
+            variant={refundEligible ? "default" : "destructive"}
             onClick={handleCancel}
             disabled={loading}
           >
