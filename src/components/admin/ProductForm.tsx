@@ -123,6 +123,15 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
     setInventoryBySize((prev) => ({ ...prev, [size]: value }));
   }
 
+  function handleInventoryChange(
+    size: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const raw = e.target.value.replace(/\D/g, "");
+    const val = raw === "" ? 0 : Math.max(0, parseInt(raw, 10));
+    setInventory(size, Number.isNaN(val) ? 0 : val);
+  }
+
   const [error, formAction, pending] = useActionState(
     async (_: string | null, formData: FormData) => {
       formData.set("name", selectedName);
@@ -267,12 +276,11 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                         <Input
                           id={`inventory_${s}`}
                           name={`inventory_${s}`}
-                          type="number"
-                          min={0}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={inventoryBySize[s] ?? 0}
-                          onChange={(e) =>
-                            setInventory(s, parseInt(e.target.value) || 0)
-                          }
+                          onChange={(e) => handleInventoryChange(s, e)}
                           className="h-8 w-full"
                         />
                       </div>
@@ -282,12 +290,11 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                   <Input
                     id="inventory"
                     name="inventory"
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={inventoryBySize[""] ?? 0}
-                    onChange={(e) =>
-                      setInventory("", parseInt(e.target.value) || 0)
-                    }
+                    onChange={(e) => handleInventoryChange("", e)}
                     placeholder="0"
                   />
                 )}

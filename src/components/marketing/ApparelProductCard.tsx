@@ -109,19 +109,7 @@ export default function ApparelProductCard({
       </div>
 
       <CardContent className="flex-1 pt-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-dp-teal text-sm">{product.name}</h3>
-          {isOutOfStock && (
-            <Badge variant="secondary" className="shrink-0 text-xs">
-              Out of stock
-            </Badge>
-          )}
-          {showStock && variant && (
-            <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
-              {variant.inventory} left
-            </Badge>
-          )}
-        </div>
+        <h3 className="font-semibold text-dp-teal text-sm">{product.name}</h3>
         {product.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {product.description}
@@ -152,9 +140,21 @@ export default function ApparelProductCard({
       </CardContent>
 
       <CardFooter className="flex items-center justify-between border-t pt-4">
-        <span className="font-bold text-dp-teal">
-          {formatPrice(product.price_cents)}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="font-bold text-dp-teal">
+            {formatPrice(product.price_cents)}
+          </span>
+          {isOutOfStock && (
+            <Badge variant="secondary" className="w-fit text-xs">
+              Out of stock
+            </Badge>
+          )}
+          {showStock && variant && (
+            <Badge className="w-fit text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
+              {variant.inventory} left
+            </Badge>
+          )}
+        </div>
         <Button
           size="sm"
           disabled={!variant || isOutOfStock || isCartFull}
