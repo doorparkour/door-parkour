@@ -176,6 +176,27 @@ describe("createClass", () => {
     ).rejects.toThrow("Class must be scheduled in the future.");
   });
 
+  it("throws when starts_at is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createClass(classFormData({ starts_at: "not-a-date" }))
+    ).rejects.toThrow("Invalid date format");
+  });
+
+  it("throws when price is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createClass(classFormData({ price: "abc" }))
+    ).rejects.toThrow("Invalid price.");
+  });
+
+  it("throws when age_group is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    await expect(
+      createClass(classFormData({ age_group: "senior" }))
+    ).rejects.toThrow("Invalid age group.");
+  });
+
   it("throws when DB insert fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "duplicate key" } }) as never

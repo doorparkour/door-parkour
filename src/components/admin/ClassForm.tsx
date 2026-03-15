@@ -64,6 +64,15 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
     async (_: string | null, formData: FormData) => {
       formData.set("price", priceValue || "0");
       formData.set("age_group", ageGroup);
+      // datetime-local sends local time without timezone; server (UTC) misinterprets it.
+      // Convert to ISO UTC so server parses correctly.
+      const startsAtLocal = formData.get("starts_at") as string;
+      if (startsAtLocal) {
+        const d = new Date(startsAtLocal);
+        if (!Number.isNaN(d.getTime())) {
+          formData.set("starts_at", d.toISOString());
+        }
+      }
       try {
         await action(formData);
         return null;
@@ -192,6 +201,7 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
                 </span>
                 <Input
                   id="price"
+                  name="price"
                   className="pl-6"
                   inputMode="decimal"
                   value={priceValue}

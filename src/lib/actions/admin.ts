@@ -41,21 +41,38 @@ async function requireAdmin() {
 export async function createClass(formData: FormData) {
   const supabase = await requireAdmin();
 
-  const startsAt = new Date(formData.get("starts_at") as string);
-  if (startsAt <= new Date()) throw new Error("Class must be scheduled in the future.");
+  const startsAtRaw = formData.get("starts_at") as string;
+  const startsAt = new Date(startsAtRaw);
+  if (Number.isNaN(startsAt.getTime())) {
+    throw new Error("Invalid date format. Use the date picker.");
+  }
+  if (startsAt <= new Date()) {
+    throw new Error("Class must be scheduled in the future.");
+  }
+
+  const priceRaw = formData.get("price") as string;
+  const priceCents = Math.round(parseFloat(priceRaw || "0") * 100);
+  if (Number.isNaN(priceCents) || priceCents < 0) {
+    throw new Error("Invalid price.");
+  }
+
+  const ageGroup = (formData.get("age_group") as string) || "adult";
+  if (!["youth", "adult"].includes(ageGroup)) {
+    throw new Error("Invalid age group.");
+  }
 
   const { error } = await supabase.from("classes").insert({
     title: formData.get("title") as string,
     description: (formData.get("description") as string) || null,
     image_url: (formData.get("image_url") as string) || null,
     location: formData.get("location") as string,
-    starts_at: formData.get("starts_at") as string,
+    starts_at: startsAtRaw,
     duration_mins: parseInt(formData.get("duration_mins") as string),
     capacity: parseInt(formData.get("capacity") as string),
     spots_remaining: parseInt(formData.get("capacity") as string),
-    price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
+    price_cents: priceCents,
     is_published: formData.get("is_published") === "on",
-    age_group: formData.get("age_group") as string,
+    age_group: ageGroup,
   });
 
   if (error) throw new Error(error.message);
