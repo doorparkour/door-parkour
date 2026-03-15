@@ -317,7 +317,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 onCheckedChange={(v) => setIsLive(!!v)}
               />
               <Label htmlFor="is_live" className="font-normal cursor-pointer">
-                Live (visible in store)
+                Published (visible to users)
               </Label>
             </div>
           </div>
