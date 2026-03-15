@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { BookingConfirmationEmail } from "@/lib/email/BookingConfirmationEmail";
+import { ManualRefundEmail } from "@/lib/email/ManualRefundEmail";
 import { formatClassDate } from "@/lib/format/date";
 import { formatPriceDollars } from "@/lib/format/currency";
 import type { Database } from "@/lib/supabase/types";
@@ -83,6 +84,7 @@ export async function handleMerchOrder(
     .insert({
       user_id,
       stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: session.payment_intent as string,
       status: "paid",
       total_cents: parseInt(total_cents),
     })
@@ -143,33 +145,62 @@ export async function handlePaymentFailed(
     .update({ status: "payment_failed" })
     .eq("stripe_payment_intent_id", pi.id);
 
-  const chargeId =
-    typeof pi.latest_charge === "string"
-      ? pi.latest_charge
-      : (pi.latest_charge as { id?: string } | null)?.id;
-  if (chargeId) {
-    await supabase
-      .from("orders")
-      .update({ status: "payment_failed" })
-      .eq("stripe_checkout_session_id", chargeId);
-  }
+  await supabase
+    .from("orders")
+    .update({ status: "payment_failed" })
+    .eq("stripe_payment_intent_id", pi.id);
 }
 
-export async function handleRefund(
-  supabase: WebhookSupabase,
-  charge: Stripe.Charge
-) {
+export async function handleRefund(supabase: WebhookSupabase, charge: Stripe.Charge) {
   const paymentIntentId = charge.payment_intent as string;
   const fullyRefunded = charge.amount_refunded === charge.amount;
   const status = fullyRefunded ? "refunded" : "partially_refunded";
 
-  await supabase
+  const { data: booking } = await supabase
     .from("bookings")
-    .update({ status })
-    .eq("stripe_payment_intent_id", paymentIntentId);
+    .select("id, user_id, class_id, refund_email_sent_at")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .single();
+
+  if (booking) {
+    await supabase
+      .from("bookings")
+      .update({ status })
+      .eq("id", booking.id);
+
+    if (!booking.refund_email_sent_at) {
+      const { data: cls } = await supabase
+        .from("classes")
+        .select("title, starts_at, price_cents")
+        .eq("id", booking.class_id)
+        .single();
+
+      const { data: userData } = await supabase.auth.admin.getUserById(booking.user_id);
+      const email = userData?.user?.email;
+
+      if (cls && email) {
+        await resend.emails.send({
+          from: "Door Parkour <noreply@doorparkour.com>",
+          to: email,
+          subject: `Refund Issued: ${cls.title}`,
+          html: await render(
+            ManualRefundEmail({
+              className: cls.title,
+              classDate: formatClassDate(cls.starts_at),
+              priceDollars: formatPriceDollars(cls.price_cents),
+            })
+          ),
+        });
+        await supabase
+          .from("bookings")
+          .update({ refund_email_sent_at: new Date().toISOString() })
+          .eq("id", booking.id);
+      }
+    }
+  }
 
   await supabase
     .from("orders")
     .update({ status })
-    .eq("stripe_checkout_session_id", charge.metadata?.checkout_session_id);
+    .eq("stripe_payment_intent_id", paymentIntentId);
 }

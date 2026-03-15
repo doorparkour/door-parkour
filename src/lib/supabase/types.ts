@@ -116,6 +116,7 @@ export type Database = {
           class_id: string;
           status: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id: string | null;
+          refund_email_sent_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -124,6 +125,7 @@ export type Database = {
           class_id: string;
           status?: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id?: string | null;
+          refund_email_sent_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -132,6 +134,7 @@ export type Database = {
           class_id?: string;
           status?: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id?: string | null;
+          refund_email_sent_at?: string | null;
         };
         Relationships: [
           {
@@ -221,6 +224,7 @@ export type Database = {
           id: string;
           user_id: string;
           stripe_checkout_session_id: string | null;
+          stripe_payment_intent_id: string | null;
           status: Database["public"]["Enums"]["order_status"];
           total_cents: number;
           created_at: string;
@@ -229,6 +233,7 @@ export type Database = {
           id?: string;
           user_id: string;
           stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
           status?: Database["public"]["Enums"]["order_status"];
           total_cents: number;
           created_at?: string;
@@ -237,6 +242,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           stripe_checkout_session_id?: string | null;
+          stripe_payment_intent_id?: string | null;
           status?: Database["public"]["Enums"]["order_status"];
         };
         Relationships: [

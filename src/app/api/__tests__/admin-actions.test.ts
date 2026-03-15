@@ -588,21 +588,16 @@ describe("refundBooking", () => {
     stripe_payment_intent_id: "pi_xxx",
     class_id: "class-1",
   };
-  const cls = { title: "Intro", starts_at: "2026-06-06T10:00:00Z", price_cents: 4500 };
-
   function makeRefundSupabase(opts: {
     booking?: object | null;
     bookingError?: { message: string } | null;
-    class?: object | null;
     updateError?: { message: string } | null;
   } = {}) {
     const b = opts.booking ?? booking;
-    const c = opts.class ?? cls;
     const single = vi.fn();
     single
       .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
-      .mockResolvedValueOnce({ data: b, error: opts.bookingError ?? null })
-      .mockResolvedValueOnce({ data: c, error: null });
+      .mockResolvedValueOnce({ data: b, error: opts.bookingError ?? null });
 
     const updateEq = vi.fn().mockResolvedValue({
       data: null,
@@ -662,29 +657,6 @@ describe("refundBooking", () => {
     );
     const result = await refundBooking(bookingId);
     expect(result.error).toBe("This booking has already been refunded.");
-  });
-
-  it("returns error when class not found", async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      makeRefundSupabase({ class: null }) as never
-    );
-    const single = vi.fn();
-    single
-      .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
-      .mockResolvedValueOnce({ data: booking, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-    const from = vi.fn((table: string) => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({ single }),
-      }),
-      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
-    }));
-    vi.mocked(createClient).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
-      from,
-    } as never);
-    const result = await refundBooking(bookingId);
-    expect(result.error).toBe("Class not found.");
   });
 
   it("revalidates paths on success", async () => {

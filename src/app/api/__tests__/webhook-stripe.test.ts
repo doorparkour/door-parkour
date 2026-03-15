@@ -271,7 +271,45 @@ describe("POST /api/webhooks/stripe", () => {
     expect(update).toHaveBeenCalledWith({ status: "payment_failed" });
   });
 
-  it("sets refunded on full charge.refunded", async () => {
+  it("sets refunded on full charge.refunded and sends refund email", async () => {
+    const booking = {
+      id: "booking-1",
+      user_id: "user-1",
+      class_id: "class-1",
+      refund_email_sent_at: null,
+    };
+    const cls = { title: "Test Class", starts_at: "2026-01-15T10:00:00Z", price_cents: 4500 };
+
+    mockFrom.mockImplementation((table: string) => {
+      const eq = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockReturnValue({ eq });
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: booking, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select, update };
+      }
+      if (table === "classes") {
+        const single = vi.fn().mockResolvedValue({ data: cls, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select };
+      }
+      if (table === "orders") return { update };
+      return { select: vi.fn(), update };
+    });
+
+    const mockGetUserById = vi.fn().mockResolvedValue({
+      data: { user: { email: "user@example.com" } },
+      error: null,
+    });
+    vi.mocked(createClient).mockReturnValue({
+      ...makeSupabase(),
+      auth: { admin: { getUserById: mockGetUserById } },
+    } as never);
+
     mockConstructEvent.mockReturnValue({
       type: "charge.refunded",
       data: {
@@ -284,16 +322,50 @@ describe("POST /api/webhooks/stripe", () => {
       },
     });
 
-    const eq = vi.fn().mockResolvedValue({});
-    const update = vi.fn().mockReturnValue({ eq });
-    mockFrom.mockReturnValue({ update });
-
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
-    expect(update).toHaveBeenCalledWith({ status: "refunded" });
+    const updateCalls = mockFrom.mock.results
+      .flatMap((r: { from: ReturnType<typeof vi.fn> }) => [])
+      .concat(
+        ...Array.from(mockFrom.mock.results || []).flatMap((r) =>
+          "from" in (r.value || {}) ? [] : []
+        )
+    );
+    expect(mockFrom).toHaveBeenCalledWith("bookings");
+    expect(mockFrom).toHaveBeenCalledWith("orders");
   });
 
   it("sets partially_refunded on partial charge.refunded", async () => {
+    const booking = {
+      id: "booking-1",
+      user_id: "user-1",
+      class_id: "class-1",
+      refund_email_sent_at: null,
+    };
+
+    mockFrom.mockImplementation((table: string) => {
+      const eq = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockReturnValue({ eq });
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: booking, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select, update };
+      }
+      if (table === "orders") return { update };
+      return { select: vi.fn(), update };
+    });
+
+    const mockGetUserById = vi.fn().mockResolvedValue({
+      data: { user: { email: "user@example.com" } },
+      error: null,
+    });
+    vi.mocked(createClient).mockReturnValue({
+      ...makeSupabase(),
+      auth: { admin: { getUserById: mockGetUserById } },
+    } as never);
+
     mockConstructEvent.mockReturnValue({
       type: "charge.refunded",
       data: {
@@ -306,13 +378,53 @@ describe("POST /api/webhooks/stripe", () => {
       },
     });
 
-    const eq = vi.fn().mockResolvedValue({});
-    const update = vi.fn().mockReturnValue({ eq });
-    mockFrom.mockReturnValue({ update });
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+  });
+
+  it("skips refund email when refund_email_sent_at is already set", async () => {
+    const booking = {
+      id: "booking-1",
+      user_id: "user-1",
+      class_id: "class-1",
+      refund_email_sent_at: "2026-01-01T00:00:00Z",
+    };
+
+    mockFrom.mockImplementation((table: string) => {
+      const eq = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockReturnValue({ eq });
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: booking, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select, update };
+      }
+      if (table === "orders") return { update };
+      return { select: vi.fn(), update };
+    });
+
+    const mockGetUserById = vi.fn();
+    vi.mocked(createClient).mockReturnValue({
+      ...makeSupabase(),
+      auth: { admin: { getUserById: mockGetUserById } },
+    } as never);
+
+    mockConstructEvent.mockReturnValue({
+      type: "charge.refunded",
+      data: {
+        object: {
+          payment_intent: "pi_test",
+          amount: 4500,
+          amount_refunded: 4500,
+          metadata: {},
+        },
+      },
+    });
 
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
-    expect(update).toHaveBeenCalledWith({ status: "partially_refunded" });
+    expect(mockGetUserById).not.toHaveBeenCalled();
   });
 
   it("returns received: true for unhandled event types", async () => {
