@@ -84,7 +84,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
         display_name: getValue("display_name") || null,
         phone: getValue("phone") || null,
         date_of_birth: getValue("date_of_birth") || null,
-        shirt_size: getValue("shirt_size") || null,
+        shirt_size: shirtSize || null,
         emergency_contact_name: getValue("emergency_contact_name") || null,
         emergency_contact_phone: getValue("emergency_contact_phone") || null,
       })
@@ -290,7 +290,6 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="shirt_size">Shirt size</Label>
-              <input type="hidden" name="shirt_size" value={shirtSize} />
               <Select value={shirtSize || "_"} onValueChange={(v) => setShirtSize(v === "_" ? "" : v)}>
                 <SelectTrigger id="shirt_size">
                   <SelectValue placeholder="Select your size (used for merch)" />
