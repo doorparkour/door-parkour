@@ -261,10 +261,10 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
               id="display_name"
               name="display_name"
               defaultValue={profile?.display_name ?? ""}
-              placeholder="How you'd like to be greeted (e.g. Mike)"
+              placeholder="How you'd like to be greeted (e.g. Sam)"
             />
             <p className="text-xs text-muted-foreground">
-              Used for greetings like &quot;Hey, Mike&quot;. Falls back to your first name if blank.
+              Used for greetings like &quot;Hey, Sam&quot;. Falls back to your first name if blank.
             </p>
           </div>
 
