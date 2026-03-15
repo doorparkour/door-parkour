@@ -67,7 +67,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       const { error: emailError } = await supabase.auth.updateUser(
         { email: newEmail },
         {
-          emailRedirectTo: `${window.location.origin}/profile`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
         }
       );
       if (emailError) {
