@@ -3,6 +3,15 @@ import { DELETE } from "../account/delete/route";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
+vi.mock("resend", () => ({
+  Resend: vi.fn().mockImplementation(function () {
+    return { emails: { send: vi.fn().mockResolvedValue({}) } };
+  }),
+}));
+vi.mock("@react-email/components", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@react-email/components")>();
+  return { ...actual, render: vi.fn().mockResolvedValue("<html/>") };
+});
 
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
@@ -59,7 +68,7 @@ describe("DELETE /api/account/delete", () => {
 
   it("returns success when user is deleted", async () => {
     vi.mocked(createServerClient).mockResolvedValue(
-      makeServerClient({ id: "user-1" }) as never
+      makeServerClient({ id: "user-1", email: "user@example.com" }) as never
     );
     mockDeleteUser.mockResolvedValue({ error: null });
 

@@ -169,7 +169,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
     }
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/login?deleted=1");
   }
 
   return (

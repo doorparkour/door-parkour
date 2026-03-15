@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { render } from "@react-email/components";
+import { Resend } from "resend";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { AccountDeletedEmail } from "@/lib/email/AccountDeletedEmail";
 
 function getAdminClient() {
   return createAdminClient(
@@ -18,6 +21,17 @@ export async function DELETE() {
 
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const email = user.email;
+  if (email) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: "Door Parkour <noreply@doorparkour.com>",
+      to: email,
+      subject: "Account deleted",
+      html: await render(AccountDeletedEmail()),
+    });
   }
 
   const admin = getAdminClient();
