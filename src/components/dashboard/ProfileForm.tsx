@@ -95,7 +95,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
     } else {
       toast.success(
         newEmail && newEmail !== email
-          ? "Profile updated. Check your new email to confirm the change."
+          ? "Profile updated. Check both your old and new email addresses to confirm the change."
           : "Profile updated"
       );
       router.refresh();
@@ -241,7 +241,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
               required
             />
             <p className="text-xs text-muted-foreground">
-              Changing your email will send a confirmation link to the new address.
+              Changing your email will send confirmation links to both your old and new addresses.
             </p>
           </div>
 
