@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,15 +8,29 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { WAIVER_TITLE, WAIVER_CONTENT } from "@/lib/waiver/content";
+
+const SCROLL_THRESHOLD = 20;
 
 export default function WaiverSignForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? "/classes";
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || hasScrolledToBottom) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    if (scrollTop + clientHeight >= scrollHeight - SCROLL_THRESHOLD) {
+      setHasScrolledToBottom(true);
+    }
+  }, [hasScrolledToBottom]);
 
   async function handleSign() {
     if (!agreed) {
@@ -50,21 +64,33 @@ export default function WaiverSignForm() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div
+          ref={scrollRef}
+          onScroll={checkScroll}
           className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground"
           role="document"
         >
           <pre className="whitespace-pre-wrap font-sans">{WAIVER_CONTENT}</pre>
         </div>
 
+        {!hasScrolledToBottom && (
+          <p className="text-sm text-muted-foreground">
+            Scroll to the bottom of the waiver to continue.
+          </p>
+        )}
+
         <div className="flex items-start gap-2">
           <Checkbox
             id="agree"
             checked={agreed}
             onCheckedChange={(v) => setAgreed(!!v)}
+            disabled={!hasScrolledToBottom}
           />
           <Label
             htmlFor="agree"
-            className="cursor-pointer text-sm font-normal leading-relaxed"
+            className={cn(
+              "text-sm font-normal leading-relaxed",
+              hasScrolledToBottom ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+            )}
           >
             I have read and agree to the waiver above.
           </Label>
