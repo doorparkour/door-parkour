@@ -24,25 +24,46 @@ function product(
 }
 
 describe("groupProducts", () => {
-  it("groups apparel by base name when products have sized variants", () => {
+  it("separates apparel (sized variants) from accessories (no size)", () => {
     const products = [
       product({
         id: "p1",
         name: "Door Parkour T-Shirt",
+        slug: "door-parkour-t-shirt",
         product_variants: [{ size: "M" }, { size: "L" }],
       }),
       product({
         id: "p2",
         name: "Door Parkour Hoodie",
+        slug: "door-parkour-hoodie",
         product_variants: [{ size: "S" }],
       }),
     ];
     const { apparel, accessories } = groupProducts(products);
 
-    expect(apparel.size).toBe(2);
-    expect(apparel.get("Door Parkour T-Shirt")).toHaveLength(1);
-    expect(apparel.get("Door Parkour Hoodie")).toHaveLength(1);
+    expect(apparel).toHaveLength(2);
     expect(accessories).toHaveLength(0);
+  });
+
+  it("shows each product with unique slug as separate item", () => {
+    const products = [
+      product({
+        id: "p1",
+        slug: "door-parkour-t-shirt",
+        product_variants: [{ size: "M" }],
+      }),
+      product({
+        id: "p2",
+        slug: "door-parkour-t-shirt-od",
+        product_variants: [{ size: "M" }],
+      }),
+    ];
+    const { apparel } = groupProducts(products);
+    expect(apparel).toHaveLength(2);
+    expect(apparel.map((p) => p.slug)).toEqual([
+      "door-parkour-t-shirt",
+      "door-parkour-t-shirt-od",
+    ]);
   });
 
   it("puts products without sized variants in accessories", () => {
@@ -60,15 +81,14 @@ describe("groupProducts", () => {
     ];
     const { apparel, accessories } = groupProducts(products);
 
-    expect(apparel.size).toBe(1);
-    expect(apparel.get("Door Parkour T-Shirt")).toHaveLength(1);
+    expect(apparel).toHaveLength(1);
     expect(accessories).toHaveLength(1);
     expect(accessories[0].name).toBe("Door Parkour Water Bottle");
   });
 
-  it("returns empty maps when given no products", () => {
+  it("returns empty arrays when given no products", () => {
     const { apparel, accessories } = groupProducts([]);
-    expect(apparel.size).toBe(0);
+    expect(apparel).toHaveLength(0);
     expect(accessories).toHaveLength(0);
   });
 });

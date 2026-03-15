@@ -8,14 +8,12 @@ export type ProductWithVariants = Product & {
 };
 
 export function groupProducts(products: ProductWithVariants[]) {
-  const apparel = new Map<string, ProductWithVariants[]>();
+  const apparel: ProductWithVariants[] = [];
   const accessories: ProductWithVariants[] = [];
   for (const p of products) {
     const hasSizedVariants = p.product_variants?.some((v) => v.size != null);
     if (hasSizedVariants) {
-      const list = apparel.get(p.name) ?? [];
-      list.push(p);
-      apparel.set(p.name, list);
+      apparel.push(p);
     } else {
       accessories.push(p);
     }

@@ -45,7 +45,6 @@ export default async function MerchPage() {
   const { apparel, accessories } = groupProducts(
     (products ?? []) as import("@/lib/merch").ProductWithVariants[]
   );
-  const apparelGroups = Array.from(apparel.entries());
 
   return (
     <>
@@ -81,10 +80,10 @@ export default async function MerchPage() {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {apparelGroups.map(([name, productList]) => (
+              {apparel.map((product) => (
                 <ApparelProductCard
-                  key={name}
-                  product={productList[0]}
+                  key={product.slug}
+                  product={product}
                   defaultSize={profile?.shirt_size ?? null}
                 />
               ))}
