@@ -255,9 +255,9 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                   {isApparel ? "Inventory per size" : "Inventory"}
                 </Label>
                 {isApparel ? (
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  <div className="flex flex-wrap gap-2">
                     {APPAREL_SIZES.map((s) => (
-                      <div key={s} className="space-y-1">
+                      <div key={s} className="flex w-14 flex-col gap-1">
                         <Label
                           htmlFor={`inventory_${s}`}
                           className="text-xs text-muted-foreground"
@@ -273,7 +273,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                           onChange={(e) =>
                             setInventory(s, parseInt(e.target.value) || 0)
                           }
-                          className="h-8"
+                          className="h-8 w-full"
                         />
                       </div>
                     ))}
