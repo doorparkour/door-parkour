@@ -82,6 +82,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
   const [isOnDemand, setIsOnDemand] = useState(
     defaultValues?.on_demand ?? false
   );
+  const [isLive, setIsLive] = useState(defaultValues?.status !== "draft");
 
   const isApparel = apparelNames.has(selectedName);
 
@@ -115,6 +116,7 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
       formData.set("name", selectedName);
       formData.set("price", priceValue || "0");
       formData.set("slug", slug);
+      formData.set("status", isLive ? "active" : "draft");
       if (selectedSize) formData.set("size", selectedSize);
       try {
         const result = await action(formData);
@@ -272,21 +274,15 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 </span>
               </Label>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                name="status"
-                defaultValue={defaultValues?.status ?? "active"}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active — visible in store</SelectItem>
-                  <SelectItem value="draft">Draft — hidden from store</SelectItem>
-                  <SelectItem value="archived">Archived — discontinued, has order history</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="is_live"
+                checked={isLive}
+                onCheckedChange={(v) => setIsLive(!!v)}
+              />
+              <Label htmlFor="is_live" className="font-normal cursor-pointer">
+                Live (visible in store)
+              </Label>
             </div>
           </div>
         </CardContent>
