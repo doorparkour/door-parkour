@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseClassInput } from "@/lib/class/validation";
 import { formatClassDate } from "@/lib/format/date";
+import { unwrap } from "@/lib/validation";
 import { formatPriceDollars } from "@/lib/format/currency";
 import { parseProductInput, productError } from "@/lib/product/validation";
 import { createClient } from "@/lib/supabase/server";
@@ -50,7 +51,7 @@ export async function createClass(
   const parsed = parseClassInput(formData, { requireFutureDate: true });
   if (parsed.error) return { error: parsed.error };
 
-  const { error } = await supabase.from("classes").insert(parsed.data!);
+  const { error } = await supabase.from("classes").insert(unwrap(parsed));
 
   if (error) return { error: error.message };
 
@@ -231,7 +232,7 @@ export async function updateClass(
 
   const { error } = await supabase
     .from("classes")
-    .update(parsed.data!)
+    .update(unwrap(parsed))
     .eq("id", id);
 
   if (error) return { error: error.message };
@@ -251,7 +252,7 @@ export async function createProduct(
   const parsed = parseProductInput(formData);
   if (parsed.error) return { error: parsed.error };
 
-  const { error } = await supabase.from("products").insert(parsed.data!);
+  const { error } = await supabase.from("products").insert(unwrap(parsed));
 
   if (error) return { error: productError(error.message) };
 
@@ -342,7 +343,7 @@ export async function updateProduct(
 
   const { error } = await supabase
     .from("products")
-    .update(parsed.data!)
+    .update(unwrap(parsed))
     .eq("id", id);
 
   if (error) return { error: productError(error.message) };

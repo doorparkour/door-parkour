@@ -185,6 +185,7 @@ describe("createClass", () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     const result = await createClass(classFormData({ price: "abc" }));
     expect(result).toEqual({ error: "Invalid price." });
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 
   it("returns error when age_group is invalid", async () => {
@@ -250,6 +251,7 @@ describe("updateClass", () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     const result = await updateClass("class-1", classFormData({ price: "abc" }));
     expect(result).toEqual({ error: "Invalid price." });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("returns error when age_group is invalid", async () => {
@@ -281,6 +283,13 @@ describe("updateClass", () => {
 // ── createProduct ─────────────────────────────────────────────
 
 describe("createProduct", () => {
+  it("returns error without DB call when validation fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    const result = await createProduct(productFormData({ slug: "" }));
+    expect(result).toEqual({ error: "Slug is required." });
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
   it("returns error when DB insert fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "unique constraint" } }) as never

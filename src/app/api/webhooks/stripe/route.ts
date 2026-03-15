@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe/server";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 import {
   handleClassBooking,
   handleMerchOrder,
@@ -10,7 +11,7 @@ import {
 import type Stripe from "stripe";
 
 function getAdminClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );

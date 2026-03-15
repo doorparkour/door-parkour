@@ -3,15 +3,16 @@ import { render } from "@react-email/components";
 import { BookingConfirmationEmail } from "@/lib/email/BookingConfirmationEmail";
 import { formatClassDate } from "@/lib/format/date";
 import { formatPriceDollars } from "@/lib/format/currency";
+import type { Database } from "@/lib/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseClient = any;
+type WebhookSupabase = SupabaseClient<Database>;
 
 export async function handleClassBooking(
-  supabase: SupabaseClient,
+  supabase: WebhookSupabase,
   session: Stripe.Checkout.Session,
   meta: Record<string, string>
 ) {
@@ -69,7 +70,7 @@ export async function handleClassBooking(
 }
 
 export async function handleMerchOrder(
-  supabase: SupabaseClient,
+  supabase: WebhookSupabase,
   session: Stripe.Checkout.Session,
   meta: Record<string, string>
 ) {
@@ -122,7 +123,7 @@ export async function handleMerchOrder(
 }
 
 export async function handlePaymentFailed(
-  supabase: SupabaseClient,
+  supabase: WebhookSupabase,
   pi: Stripe.PaymentIntent
 ) {
   await supabase
@@ -130,14 +131,20 @@ export async function handlePaymentFailed(
     .update({ status: "payment_failed" })
     .eq("stripe_payment_intent_id", pi.id);
 
-  await supabase
-    .from("orders")
-    .update({ status: "payment_failed" })
-    .eq("stripe_checkout_session_id", pi.latest_charge);
+  const chargeId =
+    typeof pi.latest_charge === "string"
+      ? pi.latest_charge
+      : (pi.latest_charge as { id?: string } | null)?.id;
+  if (chargeId) {
+    await supabase
+      .from("orders")
+      .update({ status: "payment_failed" })
+      .eq("stripe_checkout_session_id", chargeId);
+  }
 }
 
 export async function handleRefund(
-  supabase: SupabaseClient,
+  supabase: WebhookSupabase,
   charge: Stripe.Charge
 ) {
   const paymentIntentId = charge.payment_intent as string;
