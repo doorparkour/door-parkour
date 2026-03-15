@@ -61,6 +61,22 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement)?.value;
 
     const supabase = createClient();
+    const newEmail = getValue("email")?.trim() || null;
+
+    if (newEmail && newEmail !== email) {
+      const { error: emailError } = await supabase.auth.updateUser(
+        { email: newEmail },
+        {
+          emailRedirectTo: `${window.location.origin}/profile`,
+        }
+      );
+      if (emailError) {
+        toast.error("Failed to update email", { description: emailError.message });
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -77,7 +93,11 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
     if (error) {
       toast.error("Failed to update profile", { description: error.message });
     } else {
-      toast.success("Profile updated");
+      toast.success(
+        newEmail && newEmail !== email
+          ? "Profile updated. Check your new email to confirm the change."
+          : "Profile updated"
+      );
       router.refresh();
     }
     setLoading(false);
@@ -212,9 +232,16 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" value={email} disabled className="bg-muted" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              defaultValue={email}
+              placeholder="you@example.com"
+              required
+            />
             <p className="text-xs text-muted-foreground">
-              Email cannot be changed here. Contact support if needed.
+              Changing your email will send a confirmation link to the new address.
             </p>
           </div>
 
