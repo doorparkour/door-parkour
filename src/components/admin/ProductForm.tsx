@@ -1,6 +1,6 @@
 "use client";
 
-import { isRedirectError } from "next/navigation";
+import { isRedirectError } from "@/lib/navigation";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

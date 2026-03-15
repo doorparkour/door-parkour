@@ -1,5 +1,6 @@
 "use client";
 
+import { isRedirectError } from "@/lib/navigation";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ const AGE_GROUPS = [
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
 interface ClassFormProps {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<{ error?: string } | void>;
   defaultValues?: ClassRow;
 }
 
@@ -74,9 +75,13 @@ export default function ClassForm({ action, defaultValues }: ClassFormProps) {
         }
       }
       try {
-        await action(formData);
+        const result = await action(formData);
+        if (result && typeof result === "object" && "error" in result && result.error) {
+          return result.error;
+        }
         return null;
       } catch (e) {
+        if (isRedirectError(e)) throw e;
         return e instanceof Error ? e.message : "Something went wrong.";
       }
     },

@@ -169,39 +169,36 @@ describe("requireAdmin guard", () => {
 // ── createClass ───────────────────────────────────────────────
 
 describe("createClass", () => {
-  it("throws when starts_at is in the past", async () => {
+  it("returns error when starts_at is in the past", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createClass(classFormData({ starts_at: "2020-01-01T10:00" }))
-    ).rejects.toThrow("Class must be scheduled in the future.");
+    const result = await createClass(classFormData({ starts_at: "2020-01-01T10:00" }));
+    expect(result).toEqual({ error: "Class must be scheduled in the future." });
   });
 
-  it("throws when starts_at is invalid", async () => {
+  it("returns error when starts_at is invalid", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createClass(classFormData({ starts_at: "not-a-date" }))
-    ).rejects.toThrow("Invalid date format");
+    const result = await createClass(classFormData({ starts_at: "not-a-date" }));
+    expect(result).toEqual({ error: "Invalid date format. Use the date picker." });
   });
 
-  it("throws when price is invalid", async () => {
+  it("returns error when price is invalid", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createClass(classFormData({ price: "abc" }))
-    ).rejects.toThrow("Invalid price.");
+    const result = await createClass(classFormData({ price: "abc" }));
+    expect(result).toEqual({ error: "Invalid price." });
   });
 
-  it("throws when age_group is invalid", async () => {
+  it("returns error when age_group is invalid", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createClass(classFormData({ age_group: "senior" }))
-    ).rejects.toThrow("Invalid age group.");
+    const result = await createClass(classFormData({ age_group: "senior" }));
+    expect(result).toEqual({ error: "Invalid age group." });
   });
 
-  it("throws when DB insert fails", async () => {
+  it("returns error when DB insert fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "duplicate key" } }) as never
     );
-    await expect(createClass(classFormData())).rejects.toThrow("duplicate key");
+    const result = await createClass(classFormData());
+    expect(result).toEqual({ error: "duplicate key" });
   });
 
   it("inserts with correct values on success", async () => {
@@ -243,13 +240,30 @@ describe("createClass", () => {
 // ── updateClass ───────────────────────────────────────────────
 
 describe("updateClass", () => {
-  it("throws when DB update fails", async () => {
+  it("returns error when starts_at is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    const result = await updateClass("class-1", classFormData({ starts_at: "not-a-date" }));
+    expect(result).toEqual({ error: "Invalid date format. Use the date picker." });
+  });
+
+  it("returns error when price is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    const result = await updateClass("class-1", classFormData({ price: "abc" }));
+    expect(result).toEqual({ error: "Invalid price." });
+  });
+
+  it("returns error when age_group is invalid", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    const result = await updateClass("class-1", classFormData({ age_group: "senior" }));
+    expect(result).toEqual({ error: "Invalid age group." });
+  });
+
+  it("returns error when DB update fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "not found" } }) as never
     );
-    await expect(updateClass("class-1", classFormData())).rejects.toThrow(
-      "not found"
-    );
+    const result = await updateClass("class-1", classFormData());
+    expect(result).toEqual({ error: "not found" });
   });
 
   it("updates correct record on success", async () => {

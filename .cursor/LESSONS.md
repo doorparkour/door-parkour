@@ -58,9 +58,11 @@ if (error) throw new Error(productError(error.message));
 if (error) return { error: productError(error.message) };
 ```
 
-In the form's useActionState wrapper, rethrow redirects so success still navigates:
+In the form's useActionState wrapper, rethrow redirects so success still navigates. `isRedirectError` is not exported from `next/navigation` in Next 16; use `@/lib/navigation`:
 
 ```ts
+import { isRedirectError } from "@/lib/navigation";
+// ...
 } catch (e) {
   if (isRedirectError(e)) throw e;
   return e instanceof Error ? e.message : "Something went wrong.";

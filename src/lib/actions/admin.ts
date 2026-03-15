@@ -38,27 +38,29 @@ async function requireAdmin() {
 
 // ── Classes ──────────────────────────────────────────────────
 
-export async function createClass(formData: FormData) {
+export async function createClass(
+  formData: FormData
+): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
   const startsAtRaw = formData.get("starts_at") as string;
   const startsAt = new Date(startsAtRaw);
   if (Number.isNaN(startsAt.getTime())) {
-    throw new Error("Invalid date format. Use the date picker.");
+    return { error: "Invalid date format. Use the date picker." };
   }
   if (startsAt <= new Date()) {
-    throw new Error("Class must be scheduled in the future.");
+    return { error: "Class must be scheduled in the future." };
   }
 
   const priceRaw = formData.get("price") as string;
   const priceCents = Math.round(parseFloat(priceRaw || "0") * 100);
   if (Number.isNaN(priceCents) || priceCents < 0) {
-    throw new Error("Invalid price.");
+    return { error: "Invalid price." };
   }
 
   const ageGroup = (formData.get("age_group") as string) || "adult";
   if (!["youth", "adult"].includes(ageGroup)) {
-    throw new Error("Invalid age group.");
+    return { error: "Invalid age group." };
   }
 
   const { error } = await supabase.from("classes").insert({
@@ -75,7 +77,7 @@ export async function createClass(formData: FormData) {
     age_group: ageGroup,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
@@ -267,8 +269,28 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
   return {};
 }
 
-export async function updateClass(id: string, formData: FormData) {
+export async function updateClass(
+  id: string,
+  formData: FormData
+): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
+
+  const startsAtRaw = formData.get("starts_at") as string;
+  const startsAt = new Date(startsAtRaw);
+  if (Number.isNaN(startsAt.getTime())) {
+    return { error: "Invalid date format. Use the date picker." };
+  }
+
+  const priceRaw = formData.get("price") as string;
+  const priceCents = Math.round(parseFloat(priceRaw || "0") * 100);
+  if (Number.isNaN(priceCents) || priceCents < 0) {
+    return { error: "Invalid price." };
+  }
+
+  const ageGroup = (formData.get("age_group") as string) || "adult";
+  if (!["youth", "adult"].includes(ageGroup)) {
+    return { error: "Invalid age group." };
+  }
 
   const { error } = await supabase
     .from("classes")
@@ -277,16 +299,16 @@ export async function updateClass(id: string, formData: FormData) {
       description: (formData.get("description") as string) || null,
       image_url: (formData.get("image_url") as string) || null,
       location: formData.get("location") as string,
-      starts_at: formData.get("starts_at") as string,
+      starts_at: startsAtRaw,
       duration_mins: parseInt(formData.get("duration_mins") as string),
       capacity: parseInt(formData.get("capacity") as string),
-      price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
+      price_cents: priceCents,
       is_published: formData.get("is_published") === "on",
-      age_group: formData.get("age_group") as string,
+      age_group: ageGroup,
     })
     .eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
 
   revalidatePath("/admin/classes");
   revalidatePath("/classes");
