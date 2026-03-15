@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {
@@ -22,6 +23,11 @@ export async function POST() {
       { status: 500 }
     );
   }
+
+  revalidatePath("/waiver");
+  revalidatePath("/profile");
+  revalidatePath("/dashboard");
+  revalidatePath("/classes");
 
   return NextResponse.json({ success: true });
 }
