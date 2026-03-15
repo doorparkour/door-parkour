@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { formatClassDate } from "@/lib/format/date";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/server";
 import { Resend } from "resend";
@@ -74,16 +75,6 @@ export async function cancelBooking(bookingId: string) {
     }
   }
 
-  const classDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Chicago",
-  }).format(startsAt);
-
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
     from: "Door Parkour <noreply@doorparkour.com>",
@@ -92,7 +83,7 @@ export async function cancelBooking(bookingId: string) {
     html: await render(
       BookingCancellationEmail({
         className: cls.title,
-        classDate,
+        classDate: formatClassDate(startsAt),
         refundEligible,
       })
     ),

@@ -27,7 +27,7 @@ function chain(result: object) {
   ["select", "in"].forEach((m) => {
     node[m] = vi.fn().mockReturnValue(node);
   });
-  // .eq() is the terminal call: .select("*").in(...).eq("is_active", true)
+  // .eq() is the terminal call: .select("*").in(...).eq("status", "active")
   node.eq = vi.fn().mockResolvedValue(result);
   return node;
 }

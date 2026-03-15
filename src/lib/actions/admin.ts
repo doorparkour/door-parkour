@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { parseClassInput } from "@/lib/class/validation";
+import { formatClassDate } from "@/lib/format/date";
+import { formatPriceDollars } from "@/lib/format/currency";
+import { parseProductInput, productError } from "@/lib/product/validation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getStripe } from "@/lib/stripe/server";
@@ -43,39 +47,10 @@ export async function createClass(
 ): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
-  const startsAtRaw = formData.get("starts_at") as string;
-  const startsAt = new Date(startsAtRaw);
-  if (Number.isNaN(startsAt.getTime())) {
-    return { error: "Invalid date format. Use the date picker." };
-  }
-  if (startsAt <= new Date()) {
-    return { error: "Class must be scheduled in the future." };
-  }
+  const parsed = parseClassInput(formData, { requireFutureDate: true });
+  if (parsed.error) return { error: parsed.error };
 
-  const priceRaw = formData.get("price") as string;
-  const priceCents = Math.round(parseFloat(priceRaw || "0") * 100);
-  if (Number.isNaN(priceCents) || priceCents < 0) {
-    return { error: "Invalid price." };
-  }
-
-  const ageGroup = (formData.get("age_group") as string) || "adult";
-  if (!["youth", "adult"].includes(ageGroup)) {
-    return { error: "Invalid age group." };
-  }
-
-  const { error } = await supabase.from("classes").insert({
-    title: formData.get("title") as string,
-    description: (formData.get("description") as string) || null,
-    image_url: (formData.get("image_url") as string) || null,
-    location: formData.get("location") as string,
-    starts_at: startsAtRaw,
-    duration_mins: parseInt(formData.get("duration_mins") as string),
-    capacity: parseInt(formData.get("capacity") as string),
-    spots_remaining: parseInt(formData.get("capacity") as string),
-    price_cents: priceCents,
-    is_published: formData.get("is_published") === "on",
-    age_group: ageGroup,
-  });
+  const { error } = await supabase.from("classes").insert(parsed.data!);
 
   if (error) return { error: error.message };
 
@@ -128,16 +103,7 @@ export async function cancelClass(id: string) {
       )
     );
 
-    // Emails via Resend
-    const classDate = new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "America/Chicago",
-    }).format(new Date(cls.starts_at));
+    const classDate = formatClassDate(cls.starts_at);
 
     // Fetch participant emails and send cancellation notifications
     const participantDetails: Array<{ email: string; refunded: boolean }> = [];
@@ -234,21 +200,6 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
   const email = userData?.user?.email;
 
   if (email) {
-    const classDate = new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "America/Chicago",
-    }).format(new Date(cls.starts_at));
-
-    const priceDollars = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(cls.price_cents / 100);
-
     await resend.emails.send({
       from: "Door Parkour <noreply@doorparkour.com>",
       to: email,
@@ -256,8 +207,8 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
       html: await render(
         ManualRefundEmail({
           className: cls.title,
-          classDate,
-          priceDollars,
+          classDate: formatClassDate(cls.starts_at),
+          priceDollars: formatPriceDollars(cls.price_cents),
         })
       ),
     });
@@ -275,37 +226,12 @@ export async function updateClass(
 ): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
-  const startsAtRaw = formData.get("starts_at") as string;
-  const startsAt = new Date(startsAtRaw);
-  if (Number.isNaN(startsAt.getTime())) {
-    return { error: "Invalid date format. Use the date picker." };
-  }
-
-  const priceRaw = formData.get("price") as string;
-  const priceCents = Math.round(parseFloat(priceRaw || "0") * 100);
-  if (Number.isNaN(priceCents) || priceCents < 0) {
-    return { error: "Invalid price." };
-  }
-
-  const ageGroup = (formData.get("age_group") as string) || "adult";
-  if (!["youth", "adult"].includes(ageGroup)) {
-    return { error: "Invalid age group." };
-  }
+  const parsed = parseClassInput(formData);
+  if (parsed.error) return { error: parsed.error };
 
   const { error } = await supabase
     .from("classes")
-    .update({
-      title: formData.get("title") as string,
-      description: (formData.get("description") as string) || null,
-      image_url: (formData.get("image_url") as string) || null,
-      location: formData.get("location") as string,
-      starts_at: startsAtRaw,
-      duration_mins: parseInt(formData.get("duration_mins") as string),
-      capacity: parseInt(formData.get("capacity") as string),
-      price_cents: priceCents,
-      is_published: formData.get("is_published") === "on",
-      age_group: ageGroup,
-    })
+    .update(parsed.data!)
     .eq("id", id);
 
   if (error) return { error: error.message };
@@ -317,58 +243,15 @@ export async function updateClass(
 
 // ── Products ──────────────────────────────────────────────────
 
-function productError(message: string): string {
-  if (
-    message.includes("products_slug_key") ||
-    (message.includes("duplicate key") && message.includes("slug"))
-  ) {
-    return "A product with this slug already exists. Please choose a different slug.";
-  }
-  if (message.includes("duplicate key") && message.includes("name")) {
-    return "A product with this name and size already exists.";
-  }
-  if (
-    message.includes("invalid input syntax") ||
-    message.includes("violates check constraint")
-  ) {
-    return "Invalid value. Please check price, inventory, or status.";
-  }
-  return message;
-}
-
 export async function createProduct(
   formData: FormData
 ): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
-  const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
-  if (Number.isNaN(priceCents) || priceCents < 0) {
-    return { error: "Please enter a valid price." };
-  }
+  const parsed = parseProductInput(formData);
+  if (parsed.error) return { error: parsed.error };
 
-  const inventoryRaw = formData.get("inventory") as string;
-  const onDemand = formData.get("on_demand") === "on";
-  const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
-  if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
-    return { error: "Please enter a valid inventory (0 or greater)." };
-  }
-
-  const slug = (formData.get("slug") as string)?.trim();
-  if (!slug) {
-    return { error: "Slug is required." };
-  }
-
-  const { error } = await supabase.from("products").insert({
-    name: formData.get("name") as string,
-    description: (formData.get("description") as string) || null,
-    price_cents: priceCents,
-    inventory,
-    slug,
-    image_url: (formData.get("image_url") as string) || null,
-    status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
-    on_demand: onDemand,
-    size: (formData.get("size") as string) || null,
-  });
+  const { error } = await supabase.from("products").insert(parsed.data!);
 
   if (error) return { error: productError(error.message) };
 
@@ -454,36 +337,12 @@ export async function updateProduct(
     return { error: "Archived products cannot be edited." };
   }
 
-  const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
-  if (Number.isNaN(priceCents) || priceCents < 0) {
-    return { error: "Please enter a valid price." };
-  }
-
-  const inventoryRaw = formData.get("inventory") as string;
-  const onDemand = formData.get("on_demand") === "on";
-  const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
-  if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
-    return { error: "Please enter a valid inventory (0 or greater)." };
-  }
-
-  const slug = (formData.get("slug") as string)?.trim();
-  if (!slug) {
-    return { error: "Slug is required." };
-  }
+  const parsed = parseProductInput(formData);
+  if (parsed.error) return { error: parsed.error };
 
   const { error } = await supabase
     .from("products")
-    .update({
-      name: formData.get("name") as string,
-      description: (formData.get("description") as string) || null,
-      price_cents: priceCents,
-      inventory,
-      slug,
-      image_url: (formData.get("image_url") as string) || null,
-      status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
-      on_demand: onDemand,
-      size: (formData.get("size") as string) || null,
-    })
+    .update(parsed.data!)
     .eq("id", id);
 
   if (error) return { error: productError(error.message) };

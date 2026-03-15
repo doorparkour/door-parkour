@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { groupProducts } from "../merch";
+import { groupProducts } from "../grouping";
 
 function product(overrides: Partial<{ id: string; name: string; size: string | null }> = {}) {
   return {
