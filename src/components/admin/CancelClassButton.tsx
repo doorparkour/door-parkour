@@ -51,11 +51,7 @@ export default function CancelClassButton({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-        >
+        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
           <Ban className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
@@ -88,7 +84,7 @@ export default function CancelClassButton({
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={isPending}
-            className="bg-amber-600 text-white hover:bg-amber-700 dark:!text-white"
+            variant="destructive"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Yes, Cancel Class
