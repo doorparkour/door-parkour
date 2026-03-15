@@ -36,7 +36,8 @@ export function ManualRefundEmail({
           <Section style={content}>
             <Heading style={h1}>Refund Issued</Heading>
             <Text style={paragraph}>
-              We&apos;ve issued a refund for your booking as a service recovery measure:
+              We&apos;re sorry for the inconvenience. We&apos;ve issued a refund for your
+              booking:
             </Text>
 
             <Section style={card}>
@@ -56,10 +57,15 @@ export function ManualRefundEmail({
 
             <Section style={refundBanner}>
               <Text style={refundText}>
-                The refund has been issued to your original payment method. Please allow
-                5–10 business days for it to appear.
+                ✓ A full refund has been issued to your original payment method.
+                Please allow 5–10 business days for it to appear.
               </Text>
             </Section>
+
+            <Text style={paragraph}>
+              We hope to see you at a future class. Check the schedule for upcoming
+              sessions.
+            </Text>
 
             <Button style={button} href="https://doorparkour.com/classes">
               Browse Upcoming Classes
