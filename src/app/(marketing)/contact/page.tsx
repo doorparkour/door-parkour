@@ -26,7 +26,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section className="bg-background py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Info */}

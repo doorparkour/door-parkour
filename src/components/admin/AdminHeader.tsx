@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, Calendar, ShoppingBag, LayoutGrid } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -45,7 +46,7 @@ function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function AdminHeader() {
   return (
-    <header className="flex h-16 items-center border-b bg-white px-4 lg:px-8">
+    <header className="flex h-16 items-center border-b bg-background px-4 lg:px-8">
       {/* Mobile hamburger */}
       <Sheet>
         <SheetTrigger asChild>
@@ -84,9 +85,12 @@ export default function AdminHeader() {
 
       <div className="hidden lg:block" />
 
-      <span className="text-sm font-semibold text-dp-teal uppercase tracking-wide">
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <span className="text-sm font-semibold text-dp-teal uppercase tracking-wide">
         Admin Panel
-      </span>
+        </span>
+      </div>
     </header>
   );
 }

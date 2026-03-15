@@ -24,7 +24,7 @@ export default function DashboardSidebar({
   const pathname = usePathname();
 
   return (
-    <aside className={`w-60 shrink-0 border-r bg-white flex flex-col ${inSheet ? "" : "hidden lg:flex"}`}>
+    <aside className={`w-60 shrink-0 border-r bg-background flex flex-col ${inSheet ? "" : "hidden lg:flex"}`}>
       <div className="flex h-16 items-center gap-2 border-b px-5">
         <Image
           src="/door-parkour-logo.jpg"

@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { LogOut, Settings, LayoutDashboard, Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import DashboardSidebar from "./DashboardSidebar";
@@ -47,7 +48,7 @@ export default function DashboardHeader({ user, profile, isAdmin }: DashboardHea
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b bg-white px-4 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 lg:px-8">
       {/* Mobile menu */}
       <Sheet>
         <SheetTrigger asChild>
@@ -65,7 +66,9 @@ export default function DashboardHeader({ user, profile, isAdmin }: DashboardHea
 
       <div className="hidden lg:block" />
 
-      {/* User menu */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        {/* User menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-dp-orange">
@@ -107,6 +110,7 @@ export default function DashboardHeader({ user, profile, isAdmin }: DashboardHea
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

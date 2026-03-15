@@ -78,7 +78,7 @@ export default async function AdminClassesPage({
         </Link>
       </div>
 
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="rounded-lg border bg-background overflow-hidden">
         {!classes?.length ? (
           <p className="p-6 text-sm text-muted-foreground">
             {activeTab === "cancelled" ? "No cancelled classes." : "No classes yet."}
@@ -120,7 +120,7 @@ export default async function AdminClassesPage({
                     </td>
                     <td className="px-4 py-3">
                       {cls.is_cancelled ? (
-                        <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
+                        <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800 dark:hover:bg-red-900/40">
                           Cancelled
                         </Badge>
                       ) : (

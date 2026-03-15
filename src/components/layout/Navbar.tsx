@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -71,7 +72,8 @@ export default function Navbar({ user }: NavbarProps) {
         </nav>
 
         {/* Desktop auth */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle variant="on-dark" />
           {user ? (
             <>
               <Link href="/dashboard">
@@ -115,14 +117,17 @@ export default function Navbar({ user }: NavbarProps) {
           )}
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          className="text-white md:hidden"
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        {/* Mobile: theme toggle + menu */}
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle variant="on-dark" />
+          <button
+            className="text-white"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}

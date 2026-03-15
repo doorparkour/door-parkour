@@ -144,7 +144,7 @@ export default async function DashboardPage() {
                         {cls?.location}
                       </p>
                     </div>
-                    <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+                    <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
                       Confirmed
                     </Badge>
                   </li>

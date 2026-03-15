@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export default function AuthLayout({
   children,
@@ -8,7 +9,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
-      <header className="flex h-16 items-center px-6 bg-dp-teal">
+      <header className="flex h-16 items-center justify-between px-6 bg-dp-teal">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/door-parkour-logo.jpg"
@@ -19,6 +20,7 @@ export default function AuthLayout({
           />
           <span className="font-bold text-white">Door Parkour</span>
         </Link>
+        <ThemeToggle variant="on-dark" />
       </header>
       <main className="flex flex-1 items-center justify-center px-4 py-12">
         {children}

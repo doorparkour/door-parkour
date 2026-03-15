@@ -33,7 +33,7 @@ export default function AboutPage() {
       </section>
 
       {/* Bio */}
-      <section className="bg-white py-20">
+      <section className="bg-background py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
@@ -95,7 +95,7 @@ export default function AboutPage() {
                 href="/adapt-l1.png"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 block overflow-hidden rounded-xl border bg-white p-2 shadow-sm transition-shadow hover:shadow-md"
+                className="mt-4 block overflow-hidden rounded-xl border bg-card p-2 shadow-sm transition-shadow hover:shadow-md"
                 aria-label="Open ADAPT Level 1 certificate image"
               >
                 <Image

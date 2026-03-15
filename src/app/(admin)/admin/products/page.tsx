@@ -78,7 +78,7 @@ export default async function AdminProductsPage({
         </Link>
       </div>
 
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="rounded-lg border bg-background overflow-hidden">
         {!products?.length ? (
           <p className="p-6 text-sm text-muted-foreground">No products yet.</p>
         ) : (

@@ -75,7 +75,7 @@ export default function ProductCard({ product }: { product: Product }) {
             </Badge>
           )}
           {showStock && (
-            <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+            <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
               {product.inventory} left
             </Badge>
           )}

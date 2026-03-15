@@ -34,12 +34,12 @@ export default async function AdminBookingsPage() {
   );
 
   const statusColors: Record<string, string> = {
-    confirmed: "bg-green-100 text-green-800 border-green-200",
-    cancelled: "bg-red-100 text-red-800 border-red-200",
-    waitlist: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    refunded: "bg-slate-100 text-slate-700 border-slate-200",
-    partially_refunded: "bg-amber-100 text-amber-800 border-amber-200",
-    payment_failed: "bg-red-100 text-red-800 border-red-200",
+    confirmed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800",
+    cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
+    waitlist: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-200 dark:border-yellow-800",
+    refunded: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/50 dark:text-slate-200 dark:border-slate-700",
+    partially_refunded: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800",
+    payment_failed: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
   };
 
   type BookingRow = NonNullable<typeof bookings>[number];
@@ -58,7 +58,7 @@ export default async function AdminBookingsPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="rounded-lg border bg-background overflow-hidden">
         {!bookings?.length ? (
           <p className="p-6 text-sm text-muted-foreground">No bookings yet.</p>
         ) : (

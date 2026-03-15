@@ -20,7 +20,7 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-muted/20">
       {/* Sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r bg-white lg:flex lg:flex-col">
+      <aside className="hidden w-60 shrink-0 border-r bg-background lg:flex lg:flex-col">
         <div className="flex h-16 items-center gap-2 border-b px-5">
           <Image
             src="/door-parkour-logo.jpg"

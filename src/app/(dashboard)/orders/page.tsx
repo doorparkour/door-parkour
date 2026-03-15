@@ -11,10 +11,10 @@ import OrderSuccessHandler from "@/components/marketing/OrderSuccessHandler";
 export const metadata: Metadata = { title: "My Orders" };
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  paid: "bg-blue-100 text-blue-800 border-blue-200",
-  fulfilled: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
+  pending: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-200 dark:border-yellow-800",
+  paid: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-800",
+  fulfilled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800",
+  cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
 };
 
 function formatPrice(cents: number) {
@@ -67,7 +67,7 @@ export default async function OrdersPage({
             <span
               className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
                 !showAll
-                  ? "bg-white text-dp-teal shadow-sm"
+                  ? "bg-card text-dp-teal shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -78,7 +78,7 @@ export default async function OrdersPage({
             <span
               className={`inline-block rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
                 showAll
-                  ? "bg-white text-dp-teal shadow-sm"
+                  ? "bg-card text-dp-teal shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
