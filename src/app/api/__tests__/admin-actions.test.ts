@@ -276,6 +276,20 @@ describe("createProduct", () => {
     );
   });
 
+  it("returns user-friendly message for duplicate slug", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({
+        dbError: {
+          message:
+            "duplicate key value violates unique constraint 'products_slug_key'",
+        },
+      }) as never
+    );
+    await expect(createProduct(productFormData())).rejects.toThrow(
+      "A product with this slug already exists"
+    );
+  });
+
   it("inserts with correct values on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(

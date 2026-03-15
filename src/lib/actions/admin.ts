@@ -295,24 +295,58 @@ export async function updateClass(id: string, formData: FormData) {
 
 // ── Products ──────────────────────────────────────────────────
 
+function productError(message: string): string {
+  if (
+    message.includes("products_slug_key") ||
+    (message.includes("duplicate key") && message.includes("slug"))
+  ) {
+    return "A product with this slug already exists. Please choose a different slug.";
+  }
+  if (message.includes("duplicate key") && message.includes("name")) {
+    return "A product with this name and size already exists.";
+  }
+  if (
+    message.includes("invalid input syntax") ||
+    message.includes("violates check constraint")
+  ) {
+    return "Invalid value. Please check price, inventory, or status.";
+  }
+  return message;
+}
+
 export async function createProduct(formData: FormData) {
   const supabase = await requireAdmin();
 
+  const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
+  if (Number.isNaN(priceCents) || priceCents < 0) {
+    throw new Error("Please enter a valid price.");
+  }
+
   const inventoryRaw = formData.get("inventory") as string;
   const onDemand = formData.get("on_demand") === "on";
+  const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
+  if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
+    throw new Error("Please enter a valid inventory (0 or greater).");
+  }
+
+  const slug = (formData.get("slug") as string)?.trim();
+  if (!slug) {
+    throw new Error("Slug is required.");
+  }
+
   const { error } = await supabase.from("products").insert({
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
-    price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
-    inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
-    slug: formData.get("slug") as string,
+    price_cents: priceCents,
+    inventory,
+    slug,
     image_url: (formData.get("image_url") as string) || null,
     status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
     on_demand: onDemand,
     size: (formData.get("size") as string) || null,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(productError(error.message));
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
@@ -393,16 +427,31 @@ export async function updateProduct(id: string, formData: FormData) {
     throw new Error("Archived products cannot be edited.");
   }
 
+  const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
+  if (Number.isNaN(priceCents) || priceCents < 0) {
+    throw new Error("Please enter a valid price.");
+  }
+
   const inventoryRaw = formData.get("inventory") as string;
   const onDemand = formData.get("on_demand") === "on";
+  const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
+  if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
+    throw new Error("Please enter a valid inventory (0 or greater).");
+  }
+
+  const slug = (formData.get("slug") as string)?.trim();
+  if (!slug) {
+    throw new Error("Slug is required.");
+  }
+
   const { error } = await supabase
     .from("products")
     .update({
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || null,
-      price_cents: Math.round(parseFloat(formData.get("price") as string) * 100),
-      inventory: inventoryRaw ? parseInt(inventoryRaw) : 0,
-      slug: formData.get("slug") as string,
+      price_cents: priceCents,
+      inventory,
+      slug,
       image_url: (formData.get("image_url") as string) || null,
       status: ((formData.get("status") as string) || "active") as "active" | "draft" | "archived",
       on_demand: onDemand,
@@ -410,7 +459,7 @@ export async function updateProduct(id: string, formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(productError(error.message));
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
