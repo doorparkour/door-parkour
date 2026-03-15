@@ -88,7 +88,7 @@ export default function CancelClassButton({
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={isPending}
-            className="bg-amber-600 text-white hover:bg-amber-700"
+            className="bg-amber-600 text-white hover:bg-amber-700 dark:!text-white"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Yes, Cancel Class
