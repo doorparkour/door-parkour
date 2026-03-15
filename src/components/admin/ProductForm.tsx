@@ -1,5 +1,6 @@
 "use client";
 
+import { isRedirectError } from "next/navigation";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ function toSlug(name: string, size: string | null) {
 }
 
 interface ProductFormProps {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<{ error?: string } | void>;
   defaultValues?: ProductRow;
 }
 
@@ -116,9 +117,13 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
       formData.set("slug", slug);
       if (selectedSize) formData.set("size", selectedSize);
       try {
-        await action(formData);
+        const result = await action(formData);
+        if (result && typeof result === "object" && "error" in result && result.error) {
+          return result.error;
+        }
         return null;
       } catch (e) {
+        if (isRedirectError(e)) throw e;
         return e instanceof Error ? e.message : "Something went wrong.";
       }
     },

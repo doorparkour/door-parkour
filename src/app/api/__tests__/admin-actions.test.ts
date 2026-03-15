@@ -267,13 +267,12 @@ describe("updateClass", () => {
 // ── createProduct ─────────────────────────────────────────────
 
 describe("createProduct", () => {
-  it("throws when DB insert fails", async () => {
+  it("returns error when DB insert fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "unique constraint" } }) as never
     );
-    await expect(createProduct(productFormData())).rejects.toThrow(
-      "unique constraint"
-    );
+    const result = await createProduct(productFormData());
+    expect(result).toEqual({ error: "unique constraint" });
   });
 
   it("returns user-friendly message for duplicate slug", async () => {
@@ -285,9 +284,10 @@ describe("createProduct", () => {
         },
       }) as never
     );
-    await expect(createProduct(productFormData())).rejects.toThrow(
-      "A product with this slug already exists"
-    );
+    const result = await createProduct(productFormData());
+    expect(result).toEqual({
+      error: "A product with this slug already exists. Please choose a different slug.",
+    });
   });
 
   it("inserts with correct values on success", async () => {
@@ -356,7 +356,7 @@ describe("createProduct", () => {
 // ── updateProduct ─────────────────────────────────────────────
 
 describe("updateProduct", () => {
-  it("throws when product is archived", async () => {
+  it("returns error when product is archived", async () => {
     const profileSingle = vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null });
     const productSingle = vi.fn().mockResolvedValue({ data: { status: "archived" }, error: null });
     const from = vi.fn().mockImplementation((table: string) => {
@@ -383,18 +383,16 @@ describe("updateProduct", () => {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
       from,
     } as never);
-    await expect(updateProduct("prod-1", productFormData())).rejects.toThrow(
-      "Archived products cannot be edited"
-    );
+    const result = await updateProduct("prod-1", productFormData());
+    expect(result).toEqual({ error: "Archived products cannot be edited." });
   });
 
-  it("throws when DB update fails", async () => {
+  it("returns error when DB update fails", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ dbError: { message: "not found" } }) as never
     );
-    await expect(updateProduct("prod-1", productFormData())).rejects.toThrow(
-      "not found"
-    );
+    const result = await updateProduct("prod-1", productFormData());
+    expect(result).toEqual({ error: "not found" });
   });
 
   it("updates correct record on success", async () => {

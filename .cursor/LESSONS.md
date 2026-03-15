@@ -40,3 +40,29 @@ useEffect(() => {
 <img ref={imgRef} src={imgSrc} onError={() => setImgSrc(FALLBACK)} />
 ```
 `onError` still handles the client-navigation case; the `useEffect` handles the hard-reload case.
+
+---
+
+## Next.js Server Actions — return errors as data in production
+
+**Date:** 2026-03-15  
+**Symptom:** User sees generic "An error occurred in the Server Components render. The specific message is omitted in production builds" instead of validation messages (e.g. duplicate slug).  
+**Root cause:** Next.js hides thrown errors from Server Actions in production to avoid leaking sensitive details. Throwing `new Error("...")` from a server action gets swallowed.  
+**Fix:** Return errors as data instead of throwing. Use `isRedirectError` to rethrow redirects so they still work:
+
+```ts
+// ❌ thrown errors are hidden in production
+if (error) throw new Error(productError(error.message));
+
+// ✅ return error object; form displays it
+if (error) return { error: productError(error.message) };
+```
+
+In the form's useActionState wrapper, rethrow redirects so success still navigates:
+
+```ts
+} catch (e) {
+  if (isRedirectError(e)) throw e;
+  return e instanceof Error ? e.message : "Something went wrong.";
+}
+```

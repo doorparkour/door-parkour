@@ -314,24 +314,26 @@ function productError(message: string): string {
   return message;
 }
 
-export async function createProduct(formData: FormData) {
+export async function createProduct(
+  formData: FormData
+): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
   const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
   if (Number.isNaN(priceCents) || priceCents < 0) {
-    throw new Error("Please enter a valid price.");
+    return { error: "Please enter a valid price." };
   }
 
   const inventoryRaw = formData.get("inventory") as string;
   const onDemand = formData.get("on_demand") === "on";
   const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
   if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
-    throw new Error("Please enter a valid inventory (0 or greater).");
+    return { error: "Please enter a valid inventory (0 or greater)." };
   }
 
   const slug = (formData.get("slug") as string)?.trim();
   if (!slug) {
-    throw new Error("Slug is required.");
+    return { error: "Slug is required." };
   }
 
   const { error } = await supabase.from("products").insert({
@@ -346,7 +348,7 @@ export async function createProduct(formData: FormData) {
     size: (formData.get("size") as string) || null,
   });
 
-  if (error) throw new Error(productError(error.message));
+  if (error) return { error: productError(error.message) };
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
@@ -415,7 +417,10 @@ export async function unarchiveProduct(id: string) {
   revalidatePath("/merch");
 }
 
-export async function updateProduct(id: string, formData: FormData) {
+export async function updateProduct(
+  id: string,
+  formData: FormData
+): Promise<{ error?: string } | void> {
   const supabase = await requireAdmin();
 
   const { data: existing } = await supabase
@@ -424,24 +429,24 @@ export async function updateProduct(id: string, formData: FormData) {
     .eq("id", id)
     .single();
   if (existing?.status === "archived") {
-    throw new Error("Archived products cannot be edited.");
+    return { error: "Archived products cannot be edited." };
   }
 
   const priceCents = Math.round(parseFloat((formData.get("price") as string) || "0") * 100);
   if (Number.isNaN(priceCents) || priceCents < 0) {
-    throw new Error("Please enter a valid price.");
+    return { error: "Please enter a valid price." };
   }
 
   const inventoryRaw = formData.get("inventory") as string;
   const onDemand = formData.get("on_demand") === "on";
   const inventory = inventoryRaw ? parseInt(inventoryRaw) : 0;
   if (!onDemand && (Number.isNaN(inventory) || inventory < 0)) {
-    throw new Error("Please enter a valid inventory (0 or greater).");
+    return { error: "Please enter a valid inventory (0 or greater)." };
   }
 
   const slug = (formData.get("slug") as string)?.trim();
   if (!slug) {
-    throw new Error("Slug is required.");
+    return { error: "Slug is required." };
   }
 
   const { error } = await supabase
@@ -459,7 +464,7 @@ export async function updateProduct(id: string, formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) throw new Error(productError(error.message));
+  if (error) return { error: productError(error.message) };
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
