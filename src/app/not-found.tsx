@@ -42,10 +42,10 @@ export default async function NotFound() {
               404
             </p>
             <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-              Wrong landing
+              Look before you leap
             </h1>
             <p className="mt-3 max-w-md text-white/80">
-              This page took a tumble. Head back to solid ground.
+              This page doesn&apos;t exist.
             </p>
             <div className="mt-10 flex flex-wrap justify-center gap-4">
               <Link href="/">
