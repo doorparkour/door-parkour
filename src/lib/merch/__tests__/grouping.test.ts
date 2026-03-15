@@ -1,42 +1,62 @@
 import { describe, it, expect } from "vitest";
 import { groupProducts } from "../grouping";
 
-function product(overrides: Partial<{ id: string; name: string; size: string | null }> = {}) {
+function product(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    product_variants: { size: string | null }[];
+  }> = {}
+) {
   return {
     id: "prod-1",
     name: "Door Parkour T-Shirt",
     description: null,
     price_cents: 2500,
     image_url: null,
-    inventory: 10,
-    slug: "door-parkour-t-shirt-m",
+    slug: "door-parkour-t-shirt",
     status: "active" as const,
     on_demand: false,
-    size: "M" as string | null,
     created_at: "2026-01-01T00:00:00Z",
+    product_variants: [{ size: "M" }],
     ...overrides,
   };
 }
 
 describe("groupProducts", () => {
-  it("groups apparel by base name when products have size", () => {
+  it("groups apparel by base name when products have sized variants", () => {
     const products = [
-      product({ id: "p1", name: "Door Parkour T-Shirt", size: "M" }),
-      product({ id: "p2", name: "Door Parkour T-Shirt", size: "L" }),
-      product({ id: "p3", name: "Door Parkour Hoodie", size: "S" }),
+      product({
+        id: "p1",
+        name: "Door Parkour T-Shirt",
+        product_variants: [{ size: "M" }, { size: "L" }],
+      }),
+      product({
+        id: "p2",
+        name: "Door Parkour Hoodie",
+        product_variants: [{ size: "S" }],
+      }),
     ];
     const { apparel, accessories } = groupProducts(products);
 
     expect(apparel.size).toBe(2);
-    expect(apparel.get("Door Parkour T-Shirt")).toHaveLength(2);
+    expect(apparel.get("Door Parkour T-Shirt")).toHaveLength(1);
     expect(apparel.get("Door Parkour Hoodie")).toHaveLength(1);
     expect(accessories).toHaveLength(0);
   });
 
-  it("puts products without size in accessories", () => {
+  it("puts products without sized variants in accessories", () => {
     const products = [
-      product({ id: "p1", name: "Door Parkour T-Shirt", size: "M" }),
-      product({ id: "p2", name: "Door Parkour Water Bottle", size: null }),
+      product({
+        id: "p1",
+        name: "Door Parkour T-Shirt",
+        product_variants: [{ size: "M" }],
+      }),
+      product({
+        id: "p2",
+        name: "Door Parkour Water Bottle",
+        product_variants: [{ size: null }],
+      }),
     ];
     const { apparel, accessories } = groupProducts(products);
 

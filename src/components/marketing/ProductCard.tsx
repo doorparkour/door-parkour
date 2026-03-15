@@ -7,9 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/lib/store/cart";
 import { toast } from "sonner";
-import type { Database } from "@/lib/supabase/types";
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
+import type { ProductWithVariants } from "@/lib/merch";
 
 const FALLBACK_IMG = "/door-parkour-banner.jpg";
 
@@ -22,10 +20,13 @@ function formatPrice(cents: number) {
   }).format(cents / 100);
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product }: { product: ProductWithVariants }) {
   const addItem = useCart((s) => s.addItem);
   const items = useCart((s) => s.items);
-  const cartQuantity = items.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const variant = (product.product_variants ?? []).find((v) => v.size == null);
+  const cartQuantity = variant
+    ? items.find((i) => i.variantId === variant.id)?.quantity ?? 0
+    : 0;
   const [imgSrc, setImgSrc] = useState(product.image_url || FALLBACK_IMG);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -36,19 +37,27 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   }, []);
 
-  const isOutOfStock = !product.on_demand && product.inventory === 0;
-  const isCartFull = !product.on_demand && cartQuantity >= product.inventory;
-  const showStock = !product.on_demand && product.inventory > 0;
+  const isOutOfStock = variant
+    ? !product.on_demand && variant.inventory === 0
+    : true;
+  const isCartFull = variant
+    ? !product.on_demand && cartQuantity >= variant.inventory
+    : true;
+  const showStock = variant
+    ? !product.on_demand && variant.inventory > 0
+    : false;
 
   function handleAddToCart() {
-    if (isCartFull) return;
+    if (!variant || isCartFull) return;
     addItem({
+      variantId: variant.id,
       productId: product.id,
       name: product.name,
       price_cents: product.price_cents,
       image_url: product.image_url,
-      inventory: product.inventory,
+      inventory: variant.inventory,
       on_demand: product.on_demand,
+      size: null,
     });
     toast.success(`${product.name} added to cart`);
   }
@@ -74,9 +83,9 @@ export default function ProductCard({ product }: { product: Product }) {
               Out of stock
             </Badge>
           )}
-          {showStock && (
+          {showStock && variant && (
             <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
-              {product.inventory} left
+              {variant.inventory} left
             </Badge>
           )}
         </div>
@@ -93,7 +102,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
         <Button
           size="sm"
-          disabled={isOutOfStock || isCartFull}
+          disabled={!variant || isOutOfStock || isCartFull}
           onClick={handleAddToCart}
           className="bg-dp-orange text-white hover:bg-dp-orange-dark gap-1.5"
         >

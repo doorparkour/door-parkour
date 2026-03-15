@@ -22,7 +22,7 @@ export default async function AdminProductsPage({
   const supabase = await createClient();
   const { data: products } = await supabase
     .from("products")
-    .select("*")
+    .select("*, product_variants(inventory)")
     .in("status", activeTab === "archived" ? ["archived"] : ["active", "draft"])
     .order("created_at", { ascending: false });
 
@@ -102,7 +102,10 @@ export default async function AdminProductsPage({
                   <td className="px-4 py-3 text-muted-foreground">
                     ${(product.price_cents / 100).toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{product.inventory}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {(product.product_variants as { inventory: number }[] | undefined)
+                      ?.reduce((sum, v) => sum + v.inventory, 0) ?? 0}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {orderCountByProduct[product.id] ?? 0}
                   </td>

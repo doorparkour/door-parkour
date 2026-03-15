@@ -21,10 +21,20 @@ export async function POST(request: Request) {
 
   const { items }: { items: CartItem[] } = await request.json();
 
-  const productIds = items?.map((i) => i.productId) ?? [];
+  const variantIds = items?.map((i) => i.variantId) ?? [];
+  const { data: variants, error: variantError } = await supabase
+    .from("product_variants")
+    .select("id, product_id, size, inventory")
+    .in("id", variantIds);
+
+  if (variantError || !variants) {
+    return NextResponse.json({ error: "Failed to load products" }, { status: 500 });
+  }
+
+  const productIds = [...new Set(variants.map((v) => v.product_id))];
   const { data: products, error: productError } = await supabase
     .from("products")
-    .select("*")
+    .select("id, name, description, price_cents, on_demand, image_url")
     .in("id", productIds)
     .eq("status", "active");
 
@@ -32,13 +42,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to load products" }, { status: 500 });
   }
 
-  const validationError = validateCart(items ?? [], products);
+  const validationError = validateCart(items ?? [], products, variants);
   if (validationError) {
     return NextResponse.json({ error: validationError.error }, { status: 400 });
   }
 
-  const lineItems = buildLineItems(items, products);
-  const totalCents = calculateTotalCents(items, products);
+  const lineItems = buildLineItems(items ?? [], products, variants);
+  const totalCents = calculateTotalCents(items ?? [], products, variants);
 
   const origin = request.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL;
 

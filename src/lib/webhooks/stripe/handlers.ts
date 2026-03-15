@@ -75,7 +75,8 @@ export async function handleMerchOrder(
   meta: Record<string, string>
 ) {
   const { user_id, cart, total_cents } = meta;
-  const items: Array<{ productId: string; quantity: number }> = JSON.parse(cart);
+  const items: Array<{ variantId: string; productId: string; quantity: number }> =
+    JSON.parse(cart);
 
   const { data: order } = await supabase
     .from("orders")
@@ -90,18 +91,25 @@ export async function handleMerchOrder(
 
   if (!order) return;
 
+  const { data: variants } = await supabase
+    .from("product_variants")
+    .select("id, product_id, inventory")
+    .in("id", items.map((i) => i.variantId));
+
   const { data: products } = await supabase
     .from("products")
-    .select("id, price_cents, inventory, on_demand")
+    .select("id, price_cents, on_demand")
     .in("id", items.map((i) => i.productId));
 
   const orderItems = items.map((item) => {
+    const variant = variants?.find((v: { id: string }) => v.id === item.variantId);
     const product = products?.find(
       (p: { id: string; price_cents: number }) => p.id === item.productId
     );
     return {
       order_id: order.id,
       product_id: item.productId,
+      variant_id: item.variantId,
       quantity: item.quantity,
       unit_price_cents: product?.price_cents ?? 0,
     };
@@ -110,15 +118,19 @@ export async function handleMerchOrder(
   await supabase.from("order_items").insert(orderItems);
 
   for (const item of items) {
-    const product = products?.find(
-      (p: { id: string; inventory: number; on_demand: boolean }) =>
-        p.id === item.productId
+    const variant = variants?.find(
+      (v: { id: string; inventory: number }) => v.id === item.variantId
     );
-    if (!product || product.on_demand) continue;
+    const product = products?.find(
+      (p: { id: string; on_demand: boolean }) => p.id === item.productId
+    );
+    if (!variant || !product || product.on_demand) continue;
     await supabase
-      .from("products")
-      .update({ inventory: Math.max(0, product.inventory - item.quantity) })
-      .eq("id", item.productId);
+      .from("product_variants")
+      .update({
+        inventory: Math.max(0, variant.inventory - item.quantity),
+      })
+      .eq("id", item.variantId);
   }
 }
 

@@ -33,6 +33,7 @@ export default function CartDrawer() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: items.map((i) => ({
+          variantId: i.variantId,
           productId: i.productId,
           quantity: i.quantity,
         })),
@@ -89,7 +90,7 @@ export default function CartDrawer() {
           <>
             <ul className="flex-1 divide-y overflow-y-auto px-6">
               {items.map((item) => (
-                <li key={item.productId} className="flex items-center gap-4 py-5">
+                <li key={item.variantId} className="flex items-center gap-4 py-5">
                   <div className="h-16 w-16 rounded-md overflow-hidden shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -100,13 +101,18 @@ export default function CartDrawer() {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {item.name}
+                      {item.size && (
+                        <span className="text-muted-foreground font-normal"> — {item.size}</span>
+                      )}
+                    </p>
                     <p className="text-sm text-muted-foreground mt-0.5">
                       {formatPrice(item.price_cents)}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
                         className="rounded p-1 hover:bg-muted"
                       >
                         <Minus className="h-3 w-3" />
@@ -115,7 +121,7 @@ export default function CartDrawer() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
                         disabled={!(item.on_demand ?? false) && item.quantity >= (item.inventory ?? Infinity)}
                         className="rounded p-1 hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
                       >
@@ -128,7 +134,7 @@ export default function CartDrawer() {
                       {formatPrice(item.price_cents * item.quantity)}
                     </span>
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.variantId)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />

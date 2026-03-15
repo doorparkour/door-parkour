@@ -19,14 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import type { Database } from "@/lib/supabase/types";
-
-type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+import type { ProductWithVariants } from "@/lib/merch";
 
 const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 
-// Add new merch types here as the catalog grows.
-// Apparel shows a size selector; accessories are single-SKU.
 const MERCH_PRESETS = {
   apparel: {
     label: "Apparel",
@@ -55,14 +51,26 @@ function defaultName() {
   return Object.values(MERCH_PRESETS)[0].names[0];
 }
 
-function toSlug(name: string, size: string | null) {
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return size ? `${base}-${size.toLowerCase()}` : base;
+function toSlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
+
+function getVariantInventory(
+  variants: { size: string | null; inventory: number }[] | undefined,
+  size: string | null
+) {
+  const v = variants?.find((x) => x.size === size);
+  return v?.inventory ?? 0;
+}
+
+type DefaultValues = ProductWithVariants | null;
 
 interface ProductFormProps {
   action: (formData: FormData) => Promise<{ error?: string } | void>;
-  defaultValues?: ProductRow;
+  defaultValues?: DefaultValues;
 }
 
 export default function ProductForm({ action, defaultValues }: ProductFormProps) {
@@ -70,11 +78,8 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
   const initialIsApparel = apparelNames.has(initialName);
 
   const [selectedName, setSelectedName] = useState<string>(initialName);
-  const [selectedSize, setSelectedSize] = useState<string | null>(
-    defaultValues?.size ?? (initialIsApparel ? "M" : null)
-  );
   const [slug, setSlug] = useState(
-    defaultValues?.slug ?? toSlug(initialName, initialIsApparel ? (defaultValues?.size ?? "M") : null)
+    defaultValues?.slug ?? toSlug(initialName)
   );
   const [priceValue, setPriceValue] = useState(
     defaultValues ? (defaultValues.price_cents / 100).toFixed(2) : ""
@@ -83,32 +88,39 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
     defaultValues?.on_demand ?? false
   );
   const [isLive, setIsLive] = useState(defaultValues?.status !== "draft");
+  const [inventoryBySize, setInventoryBySize] = useState<Record<string, number>>(
+    () => {
+      const out: Record<string, number> = {};
+      for (const s of APPAREL_SIZES) {
+        out[s] = getVariantInventory(defaultValues?.product_variants, s);
+      }
+      out[""] = getVariantInventory(defaultValues?.product_variants, null);
+      return out;
+    }
+  );
 
   const isApparel = apparelNames.has(selectedName);
 
   function handleNameChange(name: string) {
-    const nowApparel = apparelNames.has(name);
-    const size = nowApparel ? (selectedSize ?? "M") : null;
-    if (nowApparel && !isApparel) setSelectedSize("M");
-    if (!nowApparel) setSelectedSize(null);
     setSelectedName(name);
-    setSlug(toSlug(name, size));
-  }
-
-  function handleSizeChange(size: string) {
-    setSelectedSize(size);
-    setSlug(toSlug(selectedName, size));
+    setSlug(toSlug(name));
   }
 
   function handlePriceChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value.replace(/[^\d.]/g, "");
     const parts = raw.split(".");
-    setPriceValue(parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw);
+    setPriceValue(
+      parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : raw
+    );
   }
 
   function handlePriceBlur() {
     const num = parseFloat(priceValue);
     if (!isNaN(num)) setPriceValue(num.toFixed(2));
+  }
+
+  function setInventory(size: string, value: number) {
+    setInventoryBySize((prev) => ({ ...prev, [size]: value }));
   }
 
   const [error, formAction, pending] = useActionState(
@@ -117,10 +129,21 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
       formData.set("price", priceValue || "0");
       formData.set("slug", slug);
       formData.set("status", isLive ? "active" : "draft");
-      if (selectedSize) formData.set("size", selectedSize);
+      if (isApparel) {
+        for (const s of APPAREL_SIZES) {
+          formData.set(`inventory_${s}`, String(inventoryBySize[s] ?? 0));
+        }
+      } else {
+        formData.set("inventory", String(inventoryBySize[""] ?? 0));
+      }
       try {
         const result = await action(formData);
-        if (result && typeof result === "object" && "error" in result && result.error) {
+        if (
+          result &&
+          typeof result === "object" &&
+          "error" in result &&
+          result.error
+        ) {
           return result.error;
         }
         return null;
@@ -139,51 +162,31 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
           <CardTitle className="text-base">Product Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Select value={selectedName} onValueChange={handleNameChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {multipleTypes
-                    ? Object.values(MERCH_PRESETS).map((preset) => (
-                        <SelectGroup key={preset.label}>
-                          <SelectLabel>{preset.label}</SelectLabel>
-                          {preset.names.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))
-                    : allNames.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isApparel && (
-              <div className="space-y-2">
-                <Label>Size</Label>
-                <Select value={selectedSize ?? "M"} onValueChange={handleSizeChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {APPAREL_SIZES.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Select value={selectedName} onValueChange={handleNameChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {multipleTypes
+                  ? Object.values(MERCH_PRESETS).map((preset) => (
+                      <SelectGroup key={preset.label}>
+                        <SelectLabel>{preset.label}</SelectLabel>
+                        {preset.names.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))
+                  : allNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -206,13 +209,15 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
                 required
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="door-parkour-t-shirt-m"
+                placeholder="door-parkour-t-shirt"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="image_url">
                 Image URL{" "}
-                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </Label>
               <Input
                 id="image_url"
@@ -246,15 +251,46 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
 
             {!isOnDemand && (
               <div className="space-y-2">
-                <Label htmlFor="inventory">Inventory</Label>
-                <Input
-                  id="inventory"
-                  name="inventory"
-                  type="number"
-                  min={0}
-                  defaultValue={defaultValues?.inventory ?? ""}
-                  placeholder="0"
-                />
+                <Label>
+                  {isApparel ? "Inventory per size" : "Inventory"}
+                </Label>
+                {isApparel ? (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                    {APPAREL_SIZES.map((s) => (
+                      <div key={s} className="space-y-1">
+                        <Label
+                          htmlFor={`inventory_${s}`}
+                          className="text-xs text-muted-foreground"
+                        >
+                          {s}
+                        </Label>
+                        <Input
+                          id={`inventory_${s}`}
+                          name={`inventory_${s}`}
+                          type="number"
+                          min={0}
+                          value={inventoryBySize[s] ?? 0}
+                          onChange={(e) =>
+                            setInventory(s, parseInt(e.target.value) || 0)
+                          }
+                          className="h-8"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Input
+                    id="inventory"
+                    name="inventory"
+                    type="number"
+                    min={0}
+                    value={inventoryBySize[""] ?? 0}
+                    onChange={(e) =>
+                      setInventory("", parseInt(e.target.value) || 0)
+                    }
+                    placeholder="0"
+                  />
+                )}
               </div>
             )}
           </div>

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface CartItem {
+  variantId: string;
   productId: string;
   name: string;
   price_cents: number;
@@ -9,13 +10,14 @@ export interface CartItem {
   quantity: number;
   inventory: number;
   on_demand: boolean;
+  size: string | null;
 }
 
 interface CartStore {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "quantity">) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (variantId: string) => void;
+  updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
   totalItems: () => number;
   totalCents: () => number;
@@ -27,11 +29,11 @@ export const useCart = create<CartStore>()(
       items: [],
 
       addItem(item) {
-        const existing = get().items.find((i) => i.productId === item.productId);
+        const existing = get().items.find((i) => i.variantId === item.variantId);
         if (existing) {
           set((s) => ({
             items: s.items.map((i) =>
-              i.productId === item.productId
+              i.variantId === item.variantId
                 ? { ...i, quantity: i.quantity + 1 }
                 : i
             ),
@@ -41,20 +43,20 @@ export const useCart = create<CartStore>()(
         }
       },
 
-      removeItem(productId) {
+      removeItem(variantId) {
         set((s) => ({
-          items: s.items.filter((i) => i.productId !== productId),
+          items: s.items.filter((i) => i.variantId !== variantId),
         }));
       },
 
-      updateQuantity(productId, quantity) {
+      updateQuantity(variantId, quantity) {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(variantId);
           return;
         }
         set((s) => ({
           items: s.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
+            i.variantId === variantId ? { ...i, quantity } : i
           ),
         }));
       },
@@ -76,10 +78,10 @@ export const useCart = create<CartStore>()(
     }),
     {
       name: "dp-cart",
-      version: 1,
+      version: 2,
       migrate(persistedState, version) {
-        if (version < 1) {
-          // CartItem gained inventory + on_demand in v1 — clear stale carts
+        if (version < 2) {
+          // v2: CartItem uses variantId instead of productId
           return { items: [] };
         }
         return persistedState as CartStore;

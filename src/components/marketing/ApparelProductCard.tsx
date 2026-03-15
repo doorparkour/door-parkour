@@ -14,9 +14,7 @@ import {
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/lib/store/cart";
 import { toast } from "sonner";
-import type { Database } from "@/lib/supabase/types";
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
+import type { ProductWithVariants } from "@/lib/merch";
 
 const FALLBACK_IMG = "/door-parkour-banner.jpg";
 const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
@@ -31,34 +29,33 @@ function formatPrice(cents: number) {
 }
 
 interface ApparelProductCardProps {
-  products: Product[];
+  product: ProductWithVariants;
   defaultSize: string | null;
 }
 
 export default function ApparelProductCard({
-  products,
+  product,
   defaultSize,
 }: ApparelProductCardProps) {
   const addItem = useCart((s) => s.addItem);
   const items = useCart((s) => s.items);
 
-  const availableSizes = products
-    .filter((p) => p.size)
-    .sort(
-      (a, b) =>
-        APPAREL_SIZES.indexOf((a.size ?? "M") as (typeof APPAREL_SIZES)[number]) -
-        APPAREL_SIZES.indexOf((b.size ?? "M") as (typeof APPAREL_SIZES)[number])
-    );
+  const variants = (product.product_variants ?? []).filter((v) => v.size);
+  const availableSizes = [...variants].sort(
+    (a, b) =>
+      APPAREL_SIZES.indexOf((a.size ?? "M") as (typeof APPAREL_SIZES)[number]) -
+      APPAREL_SIZES.indexOf((b.size ?? "M") as (typeof APPAREL_SIZES)[number])
+  );
 
   const preferredSize =
-    defaultSize && availableSizes.some((p) => p.size === defaultSize)
+    defaultSize && availableSizes.some((v) => v.size === defaultSize)
       ? defaultSize
       : availableSizes[0]?.size ?? "M";
 
   const [selectedSize, setSelectedSize] = useState<string>(preferredSize);
-  const product = products.find((p) => p.size === selectedSize) ?? products[0];
+  const variant = variants.find((v) => v.size === selectedSize) ?? variants[0];
   const cartQuantity =
-    items.find((i) => i.productId === product.id)?.quantity ?? 0;
+    items.find((i) => i.variantId === variant?.id)?.quantity ?? 0;
   const [imgSrc, setImgSrc] = useState(product.image_url || FALLBACK_IMG);
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -73,20 +70,27 @@ export default function ApparelProductCard({
     setImgSrc(product.image_url || FALLBACK_IMG);
   }, [product.id]);
 
-  const isOutOfStock = !product.on_demand && product.inventory === 0;
-  const isCartFull =
-    !product.on_demand && cartQuantity >= product.inventory;
-  const showStock = !product.on_demand && product.inventory > 0;
+  const isOutOfStock = variant
+    ? !product.on_demand && variant.inventory === 0
+    : true;
+  const isCartFull = variant
+    ? !product.on_demand && cartQuantity >= variant.inventory
+    : true;
+  const showStock = variant
+    ? !product.on_demand && variant.inventory > 0
+    : false;
 
   function handleAddToCart() {
-    if (isCartFull) return;
+    if (!variant || isCartFull) return;
     addItem({
+      variantId: variant.id,
       productId: product.id,
       name: product.name,
       price_cents: product.price_cents,
       image_url: product.image_url,
-      inventory: product.inventory,
+      inventory: variant.inventory,
       on_demand: product.on_demand,
+      size: variant.size,
     });
     toast.success(`${product.name} (${selectedSize}) added to cart`);
   }
@@ -112,9 +116,9 @@ export default function ApparelProductCard({
               Out of stock
             </Badge>
           )}
-          {showStock && (
+          {showStock && variant && (
             <Badge className="shrink-0 text-xs bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800 dark:hover:bg-green-900/40">
-              {product.inventory} left
+              {variant.inventory} left
             </Badge>
           )}
         </div>
@@ -132,14 +136,14 @@ export default function ApparelProductCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {availableSizes.map((p) => (
+              {availableSizes.map((v) => (
                 <SelectItem
-                  key={p.id}
-                  value={p.size!}
-                  disabled={!p.on_demand && p.inventory === 0}
+                  key={v.id}
+                  value={v.size!}
+                  disabled={!product.on_demand && v.inventory === 0}
                 >
-                  {p.size}
-                  {!p.on_demand && p.inventory === 0 && " (out of stock)"}
+                  {v.size}
+                  {!product.on_demand && v.inventory === 0 && " (out of stock)"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -153,7 +157,7 @@ export default function ApparelProductCard({
         </span>
         <Button
           size="sm"
-          disabled={isOutOfStock || isCartFull}
+          disabled={!variant || isOutOfStock || isCartFull}
           onClick={handleAddToCart}
           className="bg-dp-orange text-white hover:bg-dp-orange-dark gap-1.5"
         >

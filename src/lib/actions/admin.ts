@@ -6,7 +6,11 @@ import { parseClassInput } from "@/lib/class/validation";
 import { formatClassDate } from "@/lib/format/date";
 import { unwrap } from "@/lib/validation";
 import { formatPriceDollars } from "@/lib/format/currency";
-import { parseProductInput, productError } from "@/lib/product/validation";
+import {
+  parseProductInput,
+  parseVariantInputs,
+  productError,
+} from "@/lib/product/validation";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { getStripe } from "@/lib/stripe/server";
@@ -252,9 +256,36 @@ export async function createProduct(
   const parsed = parseProductInput(formData);
   if (parsed.error) return { error: parsed.error };
 
-  const { error } = await supabase.from("products").insert(unwrap(parsed));
+  const isApparel = [
+    "Door Parkour T-Shirt",
+    "Door Parkour Long-Sleeve Shirt",
+    "Door Parkour Pullover Hoodie",
+    "Door Parkour Zipped Hoodie",
+  ].includes(unwrap(parsed).name);
 
-  if (error) return { error: productError(error.message) };
+  const variantsParsed = parseVariantInputs(formData, isApparel);
+  if (variantsParsed.error) return { error: variantsParsed.error };
+
+  const { data: product, error: insertError } = await supabase
+    .from("products")
+    .insert(unwrap(parsed))
+    .select("id")
+    .single();
+
+  if (insertError || !product)
+    return { error: productError(insertError?.message ?? "Failed to create product") };
+
+  const variantRows = unwrap(variantsParsed).map((v) => ({
+    product_id: product.id,
+    size: v.size,
+    inventory: v.inventory,
+  }));
+
+  const { error: variantsError } = await supabase
+    .from("product_variants")
+    .insert(variantRows);
+
+  if (variantsError) return { error: productError(variantsError.message) };
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");
@@ -331,7 +362,7 @@ export async function updateProduct(
 
   const { data: existing } = await supabase
     .from("products")
-    .select("status")
+    .select("status, name")
     .eq("id", id)
     .single();
   if (existing?.status === "archived") {
@@ -341,12 +372,44 @@ export async function updateProduct(
   const parsed = parseProductInput(formData);
   if (parsed.error) return { error: parsed.error };
 
+  const isApparel = [
+    "Door Parkour T-Shirt",
+    "Door Parkour Long-Sleeve Shirt",
+    "Door Parkour Pullover Hoodie",
+    "Door Parkour Zipped Hoodie",
+  ].includes(unwrap(parsed).name);
+
+  const variantsParsed = parseVariantInputs(formData, isApparel);
+  if (variantsParsed.error) return { error: variantsParsed.error };
+
   const { error } = await supabase
     .from("products")
     .update(unwrap(parsed))
     .eq("id", id);
 
   if (error) return { error: productError(error.message) };
+
+  const variants = unwrap(variantsParsed);
+  const { data: existingVariants } = await supabase
+    .from("product_variants")
+    .select("id, size")
+    .eq("product_id", id);
+
+  for (const v of variants) {
+    const existingV = existingVariants?.find((ev) => ev.size === v.size);
+    if (existingV) {
+      await supabase
+        .from("product_variants")
+        .update({ inventory: v.inventory })
+        .eq("id", existingV.id);
+    } else {
+      await supabase.from("product_variants").insert({
+        product_id: id,
+        size: v.size,
+        inventory: v.inventory,
+      });
+    }
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/merch");

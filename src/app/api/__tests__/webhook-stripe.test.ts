@@ -165,18 +165,32 @@ describe("POST /api/webhooks/stripe", () => {
     expect(mockFrom).toHaveBeenCalledWith("orders");
   });
 
-  it("decrements inventory for limited-supply products after merch order", async () => {
-    const mockProductUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
-    const cart = JSON.stringify([{ productId: "prod-limited", quantity: 2 }]);
-    const productRows = [{ id: "prod-limited", price_cents: 2500, inventory: 10, on_demand: false }];
+  it("decrements inventory for limited-supply variants after merch order", async () => {
+    const mockVariantUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+    const cart = JSON.stringify([
+      { variantId: "var-limited", productId: "prod-limited", quantity: 2 },
+    ]);
+    const variantRows = [
+      { id: "var-limited", product_id: "prod-limited", inventory: 10 },
+    ];
+    const productRows = [
+      { id: "prod-limited", price_cents: 2500, on_demand: false },
+    ];
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === "product_variants") {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: variantRows, error: null }),
+          }),
+          update: mockVariantUpdate,
+        };
+      }
       if (table === "products") {
         return {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockResolvedValue({ data: productRows, error: null }),
           }),
-          update: mockProductUpdate,
         };
       }
       if (table === "orders") {
@@ -194,21 +208,35 @@ describe("POST /api/webhooks/stripe", () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     // 10 inventory - 2 quantity = 8
-    expect(mockProductUpdate).toHaveBeenCalledWith({ inventory: 8 });
+    expect(mockVariantUpdate).toHaveBeenCalledWith({ inventory: 8 });
   });
 
   it("does not decrement inventory for on_demand products after merch order", async () => {
-    const mockProductUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
-    const cart = JSON.stringify([{ productId: "prod-ondemand", quantity: 3 }]);
-    const productRows = [{ id: "prod-ondemand", price_cents: 2500, inventory: 0, on_demand: true }];
+    const mockVariantUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) });
+    const cart = JSON.stringify([
+      { variantId: "var-ondemand", productId: "prod-ondemand", quantity: 3 },
+    ]);
+    const variantRows = [
+      { id: "var-ondemand", product_id: "prod-ondemand", inventory: 0 },
+    ];
+    const productRows = [
+      { id: "prod-ondemand", price_cents: 2500, on_demand: true },
+    ];
 
     mockFrom.mockImplementation((table: string) => {
+      if (table === "product_variants") {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: variantRows, error: null }),
+          }),
+          update: mockVariantUpdate,
+        };
+      }
       if (table === "products") {
         return {
           select: vi.fn().mockReturnValue({
             in: vi.fn().mockResolvedValue({ data: productRows, error: null }),
           }),
-          update: mockProductUpdate,
         };
       }
       if (table === "orders") {
@@ -225,7 +253,7 @@ describe("POST /api/webhooks/stripe", () => {
 
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
-    expect(mockProductUpdate).not.toHaveBeenCalled();
+    expect(mockVariantUpdate).not.toHaveBeenCalled();
   });
 
   it("sets payment_failed status on payment_intent.payment_failed", async () => {

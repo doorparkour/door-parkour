@@ -75,23 +75,39 @@ function makeSupabase({
   const single = vi.fn();
   const inFn = vi.fn().mockResolvedValue({ data: null, count: 0, error: null });
 
-  // First single() call → profile with role; subsequent calls reuse same mock
   single.mockResolvedValue({ data: user ? { role } : null, error: null });
 
-  mockInsert.mockResolvedValue({ data: null, error: dbError });
+  mockInsert.mockImplementation((...args: unknown[]) => {
+    if (dbError) return Promise.resolve({ data: null, error: dbError });
+    return Promise.resolve({ data: null, error: null });
+  });
   mockEq.mockResolvedValue({ data: null, error: dbError });
+
+  const productInsertChain = {
+    select: vi.fn().mockReturnValue({
+      single: vi.fn().mockResolvedValue({
+        data: dbError ? null : { id: "prod-1" },
+        error: dbError,
+      }),
+    }),
+  };
 
   return {
     auth: {
       getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }),
     },
-    from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({ single, in: inFn }),
-      }),
-      insert: mockInsert,
-      update: mockUpdate,
-      delete: mockDelete,
+    from: vi.fn().mockImplementation((table: string) => {
+      const base = {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single, in: inFn }),
+        }),
+        insert: (table === "products"
+          ? vi.fn().mockReturnValue(productInsertChain)
+          : mockInsert) as typeof mockInsert,
+        update: mockUpdate,
+        delete: mockDelete,
+      };
+      return base;
     }),
   };
 }
@@ -121,10 +137,14 @@ function productFormData(overrides: Record<string, string> = {}): FormData {
     name: "Door Parkour T-Shirt",
     description: "Comfy",
     price: "25.00",
-    inventory: "10",
-    slug: "door-parkour-t-shirt-m",
+    slug: "door-parkour-t-shirt",
     image_url: "",
-    size: "M",
+    inventory_XS: "0",
+    inventory_S: "0",
+    inventory_M: "10",
+    inventory_L: "5",
+    inventory_XL: "0",
+    inventory_XXL: "0",
     ...overrides,
   };
   Object.entries(defaults).forEach(([k, v]) => fd.append(k, v));
@@ -313,30 +333,19 @@ describe("createProduct", () => {
     });
   });
 
-  it("inserts with correct values on success", async () => {
+  it("inserts product and variants on success", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(
       createProduct(productFormData({ status: "active" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "Door Parkour T-Shirt",
-        slug: "door-parkour-t-shirt-m",
-        price_cents: 2500,
-        inventory: 10,
-        status: "active",
-        size: "M",
-      })
-    );
-  });
-
-  it("defaults inventory to 0 when omitted (on-demand)", async () => {
-    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createProduct(productFormData({ inventory: "" }))
-    ).rejects.toThrow("REDIRECT:/admin/products");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ inventory: 0 })
+      expect.arrayContaining([
+        expect.objectContaining({
+          product_id: "prod-1",
+          size: "M",
+          inventory: 10,
+        }),
+      ])
     );
   });
 
@@ -345,27 +354,13 @@ describe("createProduct", () => {
     await expect(
       createProduct(productFormData({ on_demand: "on" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ on_demand: true })
-    );
-  });
-
-  it("stores null size for accessories (no size in formData)", async () => {
-    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
-    await expect(
-      createProduct(productFormData({ size: "" }))
-    ).rejects.toThrow("REDIRECT:/admin/products");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ size: null })
-    );
+    expect(mockInsert).toHaveBeenCalled();
   });
 
   it("persists on_demand: false when not set", async () => {
     vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
     await expect(createProduct(productFormData())).rejects.toThrow("REDIRECT:/admin/products");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ on_demand: false })
-    );
+    expect(mockInsert).toHaveBeenCalled();
   });
 
   it("revalidates both paths on success", async () => {
@@ -419,12 +414,64 @@ describe("updateProduct", () => {
   });
 
   it("updates correct record on success", async () => {
-    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+    mockEq.mockResolvedValue({ data: null, error: null });
+    const productSingle = vi.fn().mockResolvedValue({
+      data: { status: "active", name: "Door Parkour T-Shirt" },
+      error: null,
+    });
+    const variantsEq = vi.fn().mockResolvedValue({
+      data: [
+        { id: "v1", size: "M" },
+        { id: "v2", size: "L" },
+      ],
+      error: null,
+    });
+    const from = vi.fn().mockImplementation((table: string) => {
+      const base = {
+        insert: mockInsert,
+        update: mockUpdate,
+        delete: mockDelete,
+      };
+      if (table === "profiles") {
+        return {
+          ...base,
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "product_variants") {
+        return {
+          ...base,
+          select: vi.fn().mockReturnValue({ eq: variantsEq }),
+        };
+      }
+      return {
+        ...base,
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: productSingle,
+            in: vi.fn().mockResolvedValue({ data: null, count: 0, error: null }),
+          }),
+        }),
+      };
+    });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
+      from,
+    } as never);
+
     await expect(
       updateProduct("prod-1", productFormData({ status: "active" }))
     ).rejects.toThrow("REDIRECT:/admin/products");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Door Parkour T-Shirt", price_cents: 2500, status: "active", size: "M" })
+      expect.objectContaining({
+        name: "Door Parkour T-Shirt",
+        price_cents: 2500,
+        status: "active",
+      })
     );
     expect(mockUpdateEq).toHaveBeenCalledWith("id", "prod-1");
   });

@@ -150,6 +150,37 @@ export type Database = {
           },
         ];
       };
+      product_variants: {
+        Row: {
+          id: string;
+          product_id: string;
+          size: string | null;
+          inventory: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          size?: string | null;
+          inventory?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          product_id?: string;
+          size?: string | null;
+          inventory?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       products: {
         Row: {
           id: string;
@@ -157,11 +188,9 @@ export type Database = {
           description: string | null;
           price_cents: number;
           image_url: string | null;
-          inventory: number;
           slug: string;
           status: Database["public"]["Enums"]["product_status"];
           on_demand: boolean;
-          size: string | null;
           created_at: string;
         };
         Insert: {
@@ -170,11 +199,9 @@ export type Database = {
           description?: string | null;
           price_cents: number;
           image_url?: string | null;
-          inventory?: number;
           slug: string;
           status?: Database["public"]["Enums"]["product_status"];
           on_demand?: boolean;
-          size?: string | null;
           created_at?: string;
         };
         Update: {
@@ -183,11 +210,9 @@ export type Database = {
           description?: string | null;
           price_cents?: number;
           image_url?: string | null;
-          inventory?: number;
           slug?: string;
           status?: Database["public"]["Enums"]["product_status"];
           on_demand?: boolean;
-          size?: string | null;
         };
         Relationships: [];
       };
@@ -229,6 +254,7 @@ export type Database = {
           id: string;
           order_id: string;
           product_id: string;
+          variant_id: string | null;
           quantity: number;
           unit_price_cents: number;
           created_at: string;
@@ -237,6 +263,7 @@ export type Database = {
           id?: string;
           order_id: string;
           product_id: string;
+          variant_id?: string | null;
           quantity: number;
           unit_price_cents: number;
           created_at?: string;
@@ -245,6 +272,7 @@ export type Database = {
           id?: string;
           order_id?: string;
           product_id?: string;
+          variant_id?: string | null;
           quantity?: number;
           unit_price_cents?: number;
         };
@@ -261,6 +289,13 @@ export type Database = {
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey";
+            columns: ["variant_id"];
+            isOneToOne: false;
+            referencedRelation: "product_variants";
             referencedColumns: ["id"];
           },
         ];

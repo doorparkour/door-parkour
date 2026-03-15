@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { parseProductInput, productError } from "../validation";
+import {
+  parseProductInput,
+  parseVariantInputs,
+  productError,
+} from "../validation";
 
 function productFormData(overrides: Record<string, string> = {}): FormData {
   const fd = new FormData();
@@ -7,10 +11,11 @@ function productFormData(overrides: Record<string, string> = {}): FormData {
     name: "Door Parkour T-Shirt",
     description: "Comfy",
     price: "25.00",
-    inventory: "10",
-    slug: "door-parkour-t-shirt-m",
+    slug: "door-parkour-t-shirt",
     image_url: "",
-    size: "M",
+    on_demand: "",
+    inventory_M: "10",
+    inventory_L: "5",
     ...overrides,
   };
   Object.entries(defaults).forEach(([k, v]) => fd.append(k, v));
@@ -29,22 +34,6 @@ describe("parseProductInput", () => {
     expect(result.error).toBe("Please enter a valid price.");
   });
 
-  it("returns error when inventory is invalid (non-on-demand)", () => {
-    const result = parseProductInput(productFormData({ inventory: "x" }));
-    expect(result.error).toBe("Please enter a valid inventory (0 or greater).");
-  });
-
-  it("returns error when inventory is negative (non-on-demand)", () => {
-    const result = parseProductInput(productFormData({ inventory: "-1" }));
-    expect(result.error).toBe("Please enter a valid inventory (0 or greater).");
-  });
-
-  it("accepts empty inventory when on-demand", () => {
-    const result = parseProductInput(productFormData({ inventory: "", on_demand: "on" }));
-    expect(result.error).toBeUndefined();
-    expect(result.data?.inventory).toBe(0);
-  });
-
   it("returns error when slug is empty", () => {
     const result = parseProductInput(productFormData({ slug: "" }));
     expect(result.error).toBe("Slug is required.");
@@ -61,12 +50,12 @@ describe("parseProductInput", () => {
     expect(result.data).toMatchObject({
       name: "Door Parkour T-Shirt",
       price_cents: 2500,
-      inventory: 10,
-      slug: "door-parkour-t-shirt-m",
+      slug: "door-parkour-t-shirt",
       status: "active",
       on_demand: false,
-      size: "M",
     });
+    expect(result.data).not.toHaveProperty("inventory");
+    expect(result.data).not.toHaveProperty("size");
   });
 
   it("defaults status to active when omitted", () => {
@@ -85,17 +74,53 @@ describe("parseProductInput", () => {
   });
 });
 
+describe("parseVariantInputs", () => {
+  it("parses apparel variants (inventory per size)", () => {
+    const fd = productFormData({
+      inventory_XS: "1",
+      inventory_S: "2",
+      inventory_M: "3",
+      inventory_L: "4",
+      inventory_XL: "5",
+      inventory_XXL: "6",
+    });
+    const result = parseVariantInputs(fd, true);
+    expect(result.error).toBeUndefined();
+    expect(result.data).toHaveLength(6);
+    expect(result.data?.[0]).toEqual({ size: "XS", inventory: 1 });
+    expect(result.data?.[2]).toEqual({ size: "M", inventory: 3 });
+  });
+
+  it("parses accessory variant (single inventory)", () => {
+    const fd = productFormData({ inventory: "10" });
+    const result = parseVariantInputs(fd, false);
+    expect(result.error).toBeUndefined();
+    expect(result.data).toHaveLength(1);
+    expect(result.data?.[0]).toEqual({ size: null, inventory: 10 });
+  });
+
+  it("returns error when inventory is invalid", () => {
+    const fd = productFormData({ inventory_M: "x" });
+    const result = parseVariantInputs(fd, true);
+    expect(result.error).toContain("valid inventory");
+  });
+});
+
 describe("productError", () => {
   it("returns user-friendly message for duplicate slug", () => {
     expect(
-      productError("duplicate key value violates unique constraint 'products_slug_key'")
-    ).toBe("A product with this slug already exists. Please choose a different slug.");
+      productError(
+        "duplicate key value violates unique constraint 'products_slug_key'"
+      )
+    ).toBe(
+      "A product with this slug already exists. Please choose a different slug."
+    );
   });
 
-  it("returns user-friendly message for duplicate name", () => {
-    expect(productError("duplicate key for name")).toBe(
-      "A product with this name and size already exists."
-    );
+  it("returns user-friendly message for duplicate product_variants", () => {
+    expect(
+      productError("duplicate key for product_variants")
+    ).toBe("A variant with this size already exists.");
   });
 
   it("returns generic message for check constraint", () => {
