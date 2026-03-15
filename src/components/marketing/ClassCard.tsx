@@ -165,7 +165,7 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
             className="bg-dp-orange text-white hover:bg-dp-orange-dark disabled:opacity-50"
           >
             {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-            {isFull ? "Full" : "Book Now"}
+            {isFull ? "Sold Out" : "Book Now"}
           </Button>
         )}
       </CardFooter>
