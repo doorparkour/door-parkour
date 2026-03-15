@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, display_name")
         .eq("id", user!.id)
         .single(),
       supabase
@@ -36,13 +36,16 @@ export default async function DashboardPage() {
         .limit(3),
     ]);
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+  const greetingName =
+    profile?.display_name?.trim() ||
+    profile?.full_name?.split(" ")[0] ||
+    "there";
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-dp-teal">
-          Hey, {firstName} 👋
+          Hey, {greetingName} 👋
         </h1>
         <p className="mt-1 text-muted-foreground">
           Here&apos;s a snapshot of your account.

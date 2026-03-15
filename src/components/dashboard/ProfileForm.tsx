@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, CircleCheck } from "lucide-react";
+import { Loader2, CircleCheck, Camera, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
@@ -40,10 +41,15 @@ interface ProfileFormProps {
 
 const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_SIZE_MB = 4;
+
 export default function ProfileForm({ profile, email }: ProfileFormProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [shirtSize, setShirtSize] = useState<string>(profile?.shirt_size ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -59,6 +65,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       .from("profiles")
       .update({
         full_name: getValue("full_name") || null,
+        display_name: getValue("display_name") || null,
         phone: getValue("phone") || null,
         date_of_birth: getValue("date_of_birth") || null,
         shirt_size: getValue("shirt_size") || null,
@@ -74,6 +81,61 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       router.refresh();
     }
     setLoading(false);
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type", { description: "Use JPEG, PNG, or WebP." });
+      return;
+    }
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      toast.error("File too large", { description: `Max size is ${MAX_SIZE_MB}MB.` });
+      return;
+    }
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${profile.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      toast.error("Upload failed", { description: uploadError.message });
+      setUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: `${publicUrl}?t=${Date.now()}` })
+      .eq("id", profile.id);
+    if (updateError) {
+      toast.error("Failed to update profile", { description: updateError.message });
+    } else {
+      toast.success("Photo updated");
+      router.refresh();
+    }
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  async function handleRemoveAvatar() {
+    if (!profile?.id) return;
+    setUploading(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", profile.id);
+    if (error) {
+      toast.error("Failed to remove photo", { description: error.message });
+    } else {
+      toast.success("Photo removed");
+      router.refresh();
+    }
+    setUploading(false);
   }
 
   async function handleDeleteAccount() {
@@ -98,6 +160,56 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
           <CardTitle className="text-base">Personal Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={profile?.avatar_url ?? undefined} />
+                <AvatarFallback className="bg-muted" aria-hidden />
+              </Avatar>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                className="sr-only"
+                onChange={handleAvatarChange}
+                disabled={uploading}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Profile photo</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                JPEG, PNG or WebP. Max {MAX_SIZE_MB}MB.
+              </p>
+              {profile?.avatar_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-muted-foreground hover:text-destructive"
+                  onClick={handleRemoveAvatar}
+                  disabled={uploading}
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" value={email} disabled className="bg-muted" />
@@ -114,6 +226,19 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
               defaultValue={profile?.full_name ?? ""}
               placeholder="Jane Doe"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="display_name">Display name</Label>
+            <Input
+              id="display_name"
+              name="display_name"
+              defaultValue={profile?.display_name ?? ""}
+              placeholder="How you'd like to be greeted (e.g. Mike)"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for greetings like &quot;Hey, Mike&quot;. Falls back to your first name if blank.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -21,20 +21,8 @@ import DashboardSidebar from "./DashboardSidebar";
 
 interface DashboardHeaderProps {
   user: User;
-  profile: { full_name: string | null; avatar_url: string | null } | null;
+  profile: { full_name: string | null; display_name: string | null; avatar_url: string | null } | null;
   isAdmin?: boolean;
-}
-
-function getInitials(name: string | null | undefined) {
-  if (name) {
-    const parts = name.trim().split(" ");
-    return parts
-      .slice(0, 2)
-      .map((p) => p[0])
-      .join("")
-      .toUpperCase();
-  }
-  return "?";
 }
 
 export default function DashboardHeader({ user, profile, isAdmin }: DashboardHeaderProps) {
@@ -74,12 +62,10 @@ export default function DashboardHeader({ user, profile, isAdmin }: DashboardHea
           <button className="flex items-center gap-2 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-dp-orange">
             <Avatar className="h-8 w-8">
               <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-dp-teal text-white text-xs">
-                {getInitials(profile?.full_name)}
-              </AvatarFallback>
+              <AvatarFallback className="bg-muted" aria-hidden />
             </Avatar>
             <span className="hidden text-sm font-medium text-foreground sm:block">
-              {profile?.full_name ?? user.email}
+              {profile?.display_name?.trim() || profile?.full_name || user.email}
             </span>
           </button>
         </DropdownMenuTrigger>
