@@ -238,69 +238,68 @@ export default function ProductForm({ action, defaultValues }: ProductFormProps)
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
-              <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="price"
-                  className="pl-6"
-                  inputMode="decimal"
-                  value={priceValue}
-                  onChange={handlePriceChange}
-                  onBlur={handlePriceBlur}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <div className="relative max-w-xs">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="price"
+                className="pl-6"
+                inputMode="decimal"
+                value={priceValue}
+                onChange={handlePriceChange}
+                onBlur={handlePriceBlur}
+                placeholder="0.00"
+                required
+              />
             </div>
-
-            {!isOnDemand && (
-              <div className="space-y-2">
-                <Label>
-                  {isApparel ? "Inventory per size" : "Inventory"}
-                </Label>
-                {isApparel ? (
-                  <div className="flex flex-wrap gap-2">
-                    {APPAREL_SIZES.map((s) => (
-                      <div key={s} className="flex w-14 flex-col gap-1">
-                        <Label
-                          htmlFor={`inventory_${s}`}
-                          className="text-xs text-muted-foreground"
-                        >
-                          {s}
-                        </Label>
-                        <Input
-                          id={`inventory_${s}`}
-                          name={`inventory_${s}`}
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={inventoryBySize[s] ?? 0}
-                          onChange={(e) => handleInventoryChange(s, e)}
-                          className="h-8 w-full"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <Input
-                    id="inventory"
-                    name="inventory"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={inventoryBySize[""] ?? 0}
-                    onChange={(e) => handleInventoryChange("", e)}
-                    placeholder="0"
-                  />
-                )}
-              </div>
-            )}
           </div>
+
+          {!isOnDemand && (
+            <div className="space-y-2">
+              <Label>
+                {isApparel ? "Inventory per size" : "Inventory"}
+              </Label>
+              {isApparel ? (
+                <div className="flex flex-wrap gap-2">
+                  {APPAREL_SIZES.map((s) => (
+                    <div key={s} className="flex w-14 flex-col gap-1">
+                      <Label
+                        htmlFor={`inventory_${s}`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {s}
+                      </Label>
+                      <Input
+                        id={`inventory_${s}`}
+                        name={`inventory_${s}`}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={inventoryBySize[s] ?? 0}
+                        onChange={(e) => handleInventoryChange(s, e)}
+                        className="h-8 w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Input
+                  id="inventory"
+                  name="inventory"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={inventoryBySize[""] ?? 0}
+                  onChange={(e) => handleInventoryChange("", e)}
+                  placeholder="0"
+                  className="max-w-xs"
+                />
+              )}
+            </div>
+          )}
 
           <div className="space-y-4 pt-1">
             <div className="flex items-center gap-2">
