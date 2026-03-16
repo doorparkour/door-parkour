@@ -269,7 +269,7 @@ export async function approveOrderRefund(
         const total = (item.unit_price_cents ?? 0) * (item.quantity ?? 1);
         return `${name} × ${item.quantity} (${formatPriceDollars(total)})`;
       })
-      .join("; ") || "Order items";
+      .join("\n") || "Order items";
 
   const { data: userData } =
     await adminSupabase.auth.admin.getUserById(order.user_id);
