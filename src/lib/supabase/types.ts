@@ -21,6 +21,7 @@ export type Database = {
           date_of_birth: string | null;
           shirt_size: string | null;
           waiver_signed_at: string | null;
+          return_policy_agreed_at: string | null;
           role: string;
           created_at: string;
           updated_at: string;
@@ -36,6 +37,7 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
+          return_policy_agreed_at?: string | null;
           role?: string;
           created_at?: string;
           updated_at?: string;
@@ -51,10 +53,59 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
+          return_policy_agreed_at?: string | null;
           role?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      refund_requests: {
+        Row: {
+          id: string;
+          order_id: string;
+          user_id: string;
+          status: "pending" | "approved" | "rejected";
+          requested_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          user_id: string;
+          status?: "pending" | "approved" | "rejected";
+          requested_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          user_id?: string;
+          status?: "pending" | "approved" | "rejected";
+          requested_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          reason?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "refund_requests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       classes: {
         Row: {

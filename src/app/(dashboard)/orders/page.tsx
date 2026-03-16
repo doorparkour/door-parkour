@@ -7,6 +7,7 @@ import { ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import OrderSuccessHandler from "@/components/marketing/OrderSuccessHandler";
+import RequestRefundButton from "@/components/orders/RequestRefundButton";
 
 export const metadata: Metadata = { title: "My Orders" };
 
@@ -15,6 +16,9 @@ const statusColors: Record<string, string> = {
   paid: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-800",
   fulfilled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800",
   cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
+  refunded: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/50 dark:text-slate-200 dark:border-slate-700",
+  partially_refunded: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800",
+  payment_failed: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
 };
 
 function formatPrice(cents: number) {
@@ -37,6 +41,14 @@ export default async function OrdersPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("return_policy_agreed_at")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
+
   let query = supabase
     .from("orders")
     .select("*, order_items(quantity, unit_price_cents, products(name, image_url))")
@@ -48,6 +60,20 @@ export default async function OrdersPage({
   }
 
   const { data: orders } = await query;
+
+  const orderIds = (orders ?? []).map((o) => o.id);
+  const { data: pendingRefunds } =
+    orderIds.length > 0
+      ? await supabase
+          .from("refund_requests")
+          .select("order_id")
+          .eq("user_id", user!.id)
+          .eq("status", "pending")
+          .in("order_id", orderIds)
+      : { data: [] };
+  const ordersWithPendingRefund = new Set(
+    (pendingRefunds ?? []).map((r) => r.order_id)
+  );
 
   return (
     <div className="space-y-6">
@@ -152,7 +178,7 @@ export default async function OrdersPage({
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <ul className="divide-y text-sm">
                   {(
                     order.order_items as Array<{
@@ -171,6 +197,14 @@ export default async function OrdersPage({
                     </li>
                   ))}
                 </ul>
+                {["paid", "fulfilled"].includes(order.status) &&
+                  order.stripe_payment_intent_id &&
+                  !ordersWithPendingRefund.has(order.id) && (
+                    <RequestRefundButton
+                      orderId={order.id}
+                      returnPolicyAgreedAt={profile?.return_policy_agreed_at ?? null}
+                    />
+                  )}
               </CardContent>
             </Card>
           ))}

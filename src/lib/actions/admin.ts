@@ -18,6 +18,8 @@ import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { ClassCancellationEmail } from "@/lib/email/ClassCancellationEmail";
 import { ClassCancellationAdminEmail } from "@/lib/email/ClassCancellationAdminEmail";
+import { OrderRefundApprovedEmail } from "@/lib/email/OrderRefundApprovedEmail";
+import { OrderRefundRejectedEmail } from "@/lib/email/OrderRefundRejectedEmail";
 
 function getAdminSupabase() {
   return createAdminClient(
@@ -190,6 +192,177 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
 
   revalidatePath("/admin/bookings");
   revalidatePath("/bookings");
+
+  return {};
+}
+
+// ── Order refund requests ─────────────────────────────────────
+
+export async function approveOrderRefund(
+  requestId: string
+): Promise<{ error?: string }> {
+  const supabase = await requireAdmin();
+  const adminSupabase = getAdminSupabase();
+  const stripe = getStripe();
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const {
+    data: { user: adminUser },
+  } = await supabase.auth.getUser();
+
+  const { data: request, error: requestError } = await supabase
+    .from("refund_requests")
+    .select("id, order_id, user_id, status")
+    .eq("id", requestId)
+    .single();
+
+  if (requestError || !request) {
+    return { error: "Refund request not found." };
+  }
+
+  if (request.status !== "pending") {
+    return { error: "This request has already been processed." };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, user_id, total_cents, stripe_payment_intent_id")
+    .eq("id", request.order_id)
+    .single();
+
+  if (orderError || !order) {
+    return { error: "Order not found." };
+  }
+
+  if (!order.stripe_payment_intent_id) {
+    return { error: "This order has no payment to refund." };
+  }
+
+  try {
+    await stripe.refunds.create({
+      payment_intent: order.stripe_payment_intent_id,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Stripe refund failed";
+    return { error: msg };
+  }
+
+  await supabase
+    .from("refund_requests")
+    .update({
+      status: "approved",
+      decided_at: new Date().toISOString(),
+      decided_by: adminUser!.id,
+    })
+    .eq("id", requestId);
+
+  const { data: orderItems } = await supabase
+    .from("order_items")
+    .select("quantity, unit_price_cents, products(name)")
+    .eq("order_id", order.id);
+
+  const itemsSummary =
+    (orderItems ?? [])
+      .map((item) => {
+        const product = item.products as { name: string } | null;
+        const name = product?.name ?? "Product";
+        const total = (item.unit_price_cents ?? 0) * (item.quantity ?? 1);
+        return `${name} × ${item.quantity} (${formatPriceDollars(total)})`;
+      })
+      .join("; ") || "Order items";
+
+  const { data: userData } =
+    await adminSupabase.auth.admin.getUserById(order.user_id);
+  const email = userData?.user?.email;
+
+  if (email) {
+    await resend.emails.send({
+      from: "Door Parkour <noreply@doorparkour.com>",
+      to: email,
+      subject: `Refund Approved: Order #${order.id.slice(0, 8).toUpperCase()}`,
+      html: await render(
+        OrderRefundApprovedEmail({
+          orderId: order.id,
+          totalDollars: formatPriceDollars(order.total_cents),
+          itemsSummary,
+        })
+      ),
+    });
+  }
+
+  revalidatePath("/admin/refund-requests");
+  revalidatePath("/orders");
+
+  return {};
+}
+
+export async function rejectOrderRefund(
+  requestId: string,
+  reason?: string
+): Promise<{ error?: string }> {
+  const supabase = await requireAdmin();
+  const adminSupabase = getAdminSupabase();
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const {
+    data: { user: adminUser },
+  } = await supabase.auth.getUser();
+
+  const { data: request, error: requestError } = await supabase
+    .from("refund_requests")
+    .select("id, order_id, user_id, status")
+    .eq("id", requestId)
+    .single();
+
+  if (requestError || !request) {
+    return { error: "Refund request not found." };
+  }
+
+  if (request.status !== "pending") {
+    return { error: "This request has already been processed." };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, user_id, total_cents")
+    .eq("id", request.order_id)
+    .single();
+
+  if (orderError || !order) {
+    return { error: "Order not found." };
+  }
+
+  await supabase
+    .from("refund_requests")
+    .update({
+      status: "rejected",
+      decided_at: new Date().toISOString(),
+      decided_by: adminUser!.id,
+      reason: reason ?? null,
+    })
+    .eq("id", requestId);
+
+  const { data: userData } =
+    await adminSupabase.auth.admin.getUserById(order.user_id);
+  const email = userData?.user?.email;
+
+  if (email) {
+    await resend.emails.send({
+      from: "Door Parkour <noreply@doorparkour.com>",
+      to: email,
+      subject: `Refund Request Update: Order #${order.id.slice(0, 8).toUpperCase()}`,
+      html: await render(
+        OrderRefundRejectedEmail({
+          orderId: order.id,
+          totalDollars: formatPriceDollars(order.total_cents),
+          reason: reason ?? undefined,
+        })
+      ),
+    });
+  }
+
+  revalidatePath("/admin/refund-requests");
+  revalidatePath("/orders");
 
   return {};
 }
