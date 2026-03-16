@@ -14,6 +14,8 @@ Shared utilities, validation, and business logic. Handlers (server actions, API 
 | `merch/grouping.ts` | `groupProducts()` — apparel vs accessories for UI |
 | `merch/checkout.ts` | `validateCart`, `buildLineItems`, `calculateTotalCents` |
 | `webhooks/stripe/handlers.ts` | Stripe webhook handlers (class booking, merch order, refund, etc.) |
+| `actions/orders.ts` | `requestOrderRefund()` — user-initiated merch refund request |
+| `actions/admin.ts` | `approveOrderRefund()`, `rejectOrderRefund()` — admin decisions |
 | `validation.ts` | `unwrap()` — safely extract data from parse results |
 
 ## Conventions
