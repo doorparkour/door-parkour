@@ -8,6 +8,8 @@ import {
   archiveProduct,
   unarchiveProduct,
   refundBooking,
+  approveOrderRefund,
+  rejectOrderRefund,
 } from "@/lib/actions/admin";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
@@ -665,5 +667,306 @@ describe("refundBooking", () => {
     expect(result.error).toBeUndefined();
     expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
     expect(revalidatePath).toHaveBeenCalledWith("/bookings");
+  });
+});
+
+// ── approveOrderRefund ────────────────────────────────────────
+
+describe("approveOrderRefund", () => {
+  const requestId = "req-1";
+  const request = {
+    id: requestId,
+    order_id: "order-1",
+    user_id: "user-1",
+    status: "pending",
+  };
+  const order = {
+    id: "order-1",
+    user_id: "user-1",
+    total_cents: 5000,
+    stripe_payment_intent_id: "pi_xxx",
+  };
+
+  function makeApproveSupabase(opts: {
+    request?: object | null;
+    requestError?: { message: string } | null;
+    order?: object | null;
+    orderError?: { message: string } | null;
+    updateError?: { message: string } | null;
+  } = {}) {
+    const req = opts.request ?? request;
+    const ord = opts.order ?? order;
+    const requestSingle = vi.fn().mockResolvedValue({
+      data: opts.requestError ? null : req,
+      error: opts.requestError ?? null,
+    });
+    const orderSingle = vi.fn().mockResolvedValue({
+      data: opts.orderError ? null : ord,
+      error: opts.orderError ?? null,
+    });
+    const orderItemsEq = vi.fn().mockResolvedValue({
+      data: [{ quantity: 1, unit_price_cents: 5000, products: { name: "T-Shirt" } }],
+      error: null,
+    });
+    const updateEq = vi.fn().mockResolvedValue({
+      data: null,
+      error: opts.updateError ?? null,
+    });
+
+    const from = vi.fn((table: string) => {
+      const base = {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: requestSingle,
+            in: mockIn,
+          }),
+        }),
+        update: vi.fn().mockReturnValue({ eq: updateEq }),
+      };
+      if (table === "refund_requests") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single: requestSingle }),
+          }),
+          update: vi.fn().mockReturnValue({ eq: updateEq }),
+        };
+      }
+      if (table === "orders") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single: orderSingle }),
+          }),
+        };
+      }
+      if (table === "order_items") {
+        return {
+          select: vi.fn().mockReturnValue({ eq: orderItemsEq }),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null }),
+            }),
+          }),
+        };
+      }
+      return base;
+    });
+
+    return {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+    };
+  }
+
+  it("redirects when not admin", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ user: null }) as never
+    );
+    await expect(approveOrderRefund(requestId)).rejects.toThrow("REDIRECT:/login");
+  });
+
+  it("returns error when refund request not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeApproveSupabase({ request: null, requestError: { message: "not found" } }) as never
+    );
+    const result = await approveOrderRefund(requestId);
+    expect(result.error).toBe("Refund request not found.");
+  });
+
+  it("returns error when request already processed", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeApproveSupabase({ request: { ...request, status: "approved" } }) as never
+    );
+    const result = await approveOrderRefund(requestId);
+    expect(result.error).toBe("This request has already been processed.");
+  });
+
+  it("returns error when order not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeApproveSupabase({ order: null, orderError: { message: "not found" } }) as never
+    );
+    const result = await approveOrderRefund(requestId);
+    expect(result.error).toBe("Order not found.");
+  });
+
+  it("returns error when order has no payment intent", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeApproveSupabase({
+        order: { ...order, stripe_payment_intent_id: null },
+      }) as never
+    );
+    const result = await approveOrderRefund(requestId);
+    expect(result.error).toBe("This order has no payment to refund.");
+  });
+
+  it("revalidates paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeApproveSupabase() as never);
+    const result = await approveOrderRefund(requestId);
+    expect(result.error).toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/refund-requests");
+    expect(revalidatePath).toHaveBeenCalledWith("/orders");
+  });
+});
+
+// ── rejectOrderRefund ─────────────────────────────────────────
+
+describe("rejectOrderRefund", () => {
+  const requestId = "req-1";
+  const request = {
+    id: requestId,
+    order_id: "order-1",
+    user_id: "user-1",
+    status: "pending",
+  };
+  const order = {
+    id: "order-1",
+    user_id: "user-1",
+    total_cents: 5000,
+  };
+
+  function makeRejectSupabase(opts: {
+    request?: object | null;
+    requestError?: { message: string } | null;
+    order?: object | null;
+    orderError?: { message: string } | null;
+    updateError?: { message: string } | null;
+  } = {}) {
+    const req = opts.request ?? request;
+    const ord = opts.order ?? order;
+    const requestSingle = vi.fn().mockResolvedValue({
+      data: opts.requestError ? null : req,
+      error: opts.requestError ?? null,
+    });
+    const orderSingle = vi.fn().mockResolvedValue({
+      data: opts.orderError ? null : ord,
+      error: opts.orderError ?? null,
+    });
+    const updateEq = vi.fn().mockResolvedValue({
+      data: null,
+      error: opts.updateError ?? null,
+    });
+
+    const from = vi.fn((table: string) => {
+      if (table === "refund_requests") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single: requestSingle }),
+          }),
+          update: vi.fn().mockReturnValue({ eq: updateEq }),
+        };
+      }
+      if (table === "orders") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single: orderSingle }),
+          }),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    return {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+    };
+  }
+
+  it("redirects when not admin", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ user: null }) as never
+    );
+    await expect(rejectOrderRefund(requestId)).rejects.toThrow("REDIRECT:/login");
+  });
+
+  it("returns error when refund request not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRejectSupabase({ request: null, requestError: { message: "not found" } }) as never
+    );
+    const result = await rejectOrderRefund(requestId);
+    expect(result.error).toBe("Refund request not found.");
+  });
+
+  it("returns error when request already processed", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeRejectSupabase({ request: { ...request, status: "rejected" } }) as never
+    );
+    const result = await rejectOrderRefund(requestId);
+    expect(result.error).toBe("This request has already been processed.");
+  });
+
+  it("revalidates paths on success", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeRejectSupabase() as never);
+    const result = await rejectOrderRefund(requestId);
+    expect(result.error).toBeUndefined();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/refund-requests");
+    expect(revalidatePath).toHaveBeenCalledWith("/orders");
+  });
+
+  it("passes reason to update when provided", async () => {
+    const mockUpdateRefund = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+    });
+    const from = vi.fn((table: string) => {
+      if (table === "refund_requests") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: request,
+                error: null,
+              }),
+            }),
+          }),
+          update: mockUpdateRefund,
+        };
+      }
+      if (table === "orders") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: order,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: { role: "admin" }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+    } as never);
+
+    const result = await rejectOrderRefund(requestId, "Item not in original condition");
+    expect(result.error).toBeUndefined();
+    expect(mockUpdateRefund).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "rejected",
+        reason: "Item not in original condition",
+      })
+    );
   });
 });
