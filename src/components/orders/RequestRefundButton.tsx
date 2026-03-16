@@ -45,7 +45,9 @@ export default function RequestRefundButton({
     if (result.error) {
       toast.error("Refund request failed", { description: result.error });
     } else {
-      toast.success("Refund request submitted. An admin will review it shortly.");
+      toast.success("Refund request submitted.", {
+        description: "If approved, you'll receive a refund — no return required.",
+      });
       setConfirmOpen(false);
       router.refresh();
     }

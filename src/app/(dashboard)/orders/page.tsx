@@ -15,6 +15,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-200 dark:border-yellow-800",
   paid: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-800",
   fulfilled: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-200 dark:border-green-800",
+  refund_requested: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800",
   cancelled: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-200 dark:border-red-800",
   refunded: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/50 dark:text-slate-200 dark:border-slate-700",
   partially_refunded: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-800",
@@ -172,9 +173,19 @@ export default async function OrdersPage({
                     {formatPrice(order.total_cents)}
                   </span>
                   <Badge
-                    className={`${statusColors[order.status] ?? ""} hover:${statusColors[order.status]}`}
+                    className={
+                      statusColors[
+                        ordersWithPendingRefund.has(order.id) &&
+                        ["paid", "fulfilled"].includes(order.status)
+                          ? "refund_requested"
+                          : order.status
+                      ] ?? ""
+                    }
                   >
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    {ordersWithPendingRefund.has(order.id) &&
+                    ["paid", "fulfilled"].includes(order.status)
+                      ? "Refund Requested"
+                      : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                   </Badge>
                 </div>
               </CardHeader>

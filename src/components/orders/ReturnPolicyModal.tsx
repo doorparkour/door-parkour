@@ -50,7 +50,9 @@ export default function ReturnPolicyModal({
       throw new Error(result.error);
     }
 
-    toast.success("Refund request submitted. An admin will review it shortly.");
+    toast.success("Refund request submitted.", {
+      description: "If approved, you'll receive a refund — no return required.",
+    });
     onOpenChange(false);
     onSuccess();
   }

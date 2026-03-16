@@ -46,7 +46,9 @@ export function OrderRefundApprovedEmail({
               <Hr style={divider} />
 
               <Text style={cardLabel}>ITEMS</Text>
-              <Text style={cardValue}>{itemsSummary}</Text>
+              <Text style={{ ...cardValue, whiteSpace: "pre-line" }}>
+                {itemsSummary}
+              </Text>
 
               <Hr style={divider} />
 
@@ -57,7 +59,8 @@ export function OrderRefundApprovedEmail({
             <Section style={refundBanner}>
               <Text style={refundText}>
                 ✓ A full refund has been issued to your original payment method.
-                Please allow 5–10 business days for it to appear.
+                No return required — you may keep the items. Please allow 5–10
+                business days for the refund to appear.
               </Text>
             </Section>
 
