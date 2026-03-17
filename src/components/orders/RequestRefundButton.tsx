@@ -11,36 +11,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, RotateCcw } from "lucide-react";
 import { requestOrderRefund } from "@/lib/actions/orders";
-import ReturnPolicyModal from "./ReturnPolicyModal";
+import RefundPolicyModal from "./RefundPolicyModal";
 
 type Props = {
   orderId: string;
-  returnPolicyAgreedAt: string | null;
+  refundPolicyAgreedAt: string | null;
 };
 
 export default function RequestRefundButton({
   orderId,
-  returnPolicyAgreedAt,
+  refundPolicyAgreedAt,
 }: Props) {
   const router = useRouter();
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   function handleClick() {
-    if (returnPolicyAgreedAt) {
+    if (refundPolicyAgreedAt) {
       setConfirmOpen(true);
     } else {
       setPolicyModalOpen(true);
     }
   }
 
+  function handlePolicyAgreed() {
+    router.refresh();
+    setConfirmOpen(true);
+  }
+
   async function handleConfirm() {
     setLoading(true);
-    const result = await requestOrderRefund(orderId);
+    const result = await requestOrderRefund(orderId, feedback || undefined);
 
     if (result.error) {
       toast.error("Refund request failed", { description: result.error });
@@ -49,6 +57,7 @@ export default function RequestRefundButton({
         description: "If approved, you'll receive a refund — no return required.",
       });
       setConfirmOpen(false);
+      setFeedback("");
       router.refresh();
     }
     setLoading(false);
@@ -66,7 +75,7 @@ export default function RequestRefundButton({
         Request Refund
       </Button>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog open={confirmOpen} onOpenChange={(open) => { setConfirmOpen(open); if (!open) setFeedback(""); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Request refund?</DialogTitle>
@@ -75,6 +84,20 @@ export default function RequestRefundButton({
               receive an email once your request is processed.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="feedback">
+              Anything you&apos;d like to share?{" "}
+              <span className="text-muted-foreground font-normal">(optional — helps us improve our merch)</span>
+            </Label>
+            <Textarea
+              id="feedback"
+              placeholder="e.g. Wrong size, changed mind, quality concern..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
@@ -91,11 +114,10 @@ export default function RequestRefundButton({
         </DialogContent>
       </Dialog>
 
-      <ReturnPolicyModal
-        orderId={orderId}
+      <RefundPolicyModal
         open={policyModalOpen}
         onOpenChange={setPolicyModalOpen}
-        onSuccess={() => router.refresh()}
+        onSuccess={handlePolicyAgreed}
       />
     </>
   );

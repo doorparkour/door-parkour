@@ -15,14 +15,14 @@ const mockMaybeSingle = vi.fn();
 
 function makeSupabase(opts: {
   user?: object | null;
-  profile?: { return_policy_agreed_at: string | null } | null;
+  profile?: { refund_policy_agreed_at: string | null } | null;
   order?: object | null;
   orderError?: { message: string } | null;
   existingRequest?: object | null;
   insertError?: { message: string } | null;
 } = {}) {
   const user = opts.user === undefined ? { id: "user-1" } : opts.user;
-  const profile = opts.profile ?? { return_policy_agreed_at: "2026-01-01T00:00:00Z" };
+  const profile = opts.profile ?? { refund_policy_agreed_at: "2026-01-01T00:00:00Z" };
   const order = opts.order ?? {
     id: "order-1",
     user_id: "user-1",
@@ -98,14 +98,14 @@ describe("requestOrderRefund", () => {
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
-  it("returns error when return policy not agreed", async () => {
+  it("returns error when refund policy not agreed", async () => {
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabase({ profile: { return_policy_agreed_at: null } }) as never
+      makeSupabase({ profile: { refund_policy_agreed_at: null } }) as never
     );
 
     const result = await requestOrderRefund("order-1");
     expect(result.error).toBe(
-      "You must agree to the return policy before requesting a refund."
+      "You must agree to the refund policy before requesting a refund."
     );
     expect(mockInsert).not.toHaveBeenCalled();
   });
@@ -201,8 +201,22 @@ describe("requestOrderRefund", () => {
       order_id: "order-1",
       user_id: "user-1",
       status: "pending",
+      customer_reason: null,
     });
     expect(revalidatePath).toHaveBeenCalledWith("/orders");
+  });
+
+  it("stores customer_reason when provided", async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase() as never);
+
+    const result = await requestOrderRefund("order-1", "Wrong size, too small");
+    expect(result.error).toBeUndefined();
+    expect(mockInsert).toHaveBeenCalledWith({
+      order_id: "order-1",
+      user_id: "user-1",
+      status: "pending",
+      customer_reason: "Wrong size, too small",
+    });
   });
 
   it("accepts fulfilled orders as eligible", async () => {

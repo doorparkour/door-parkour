@@ -21,7 +21,7 @@ export type Database = {
           date_of_birth: string | null;
           shirt_size: string | null;
           waiver_signed_at: string | null;
-          return_policy_agreed_at: string | null;
+          refund_policy_agreed_at: string | null;
           role: string;
           created_at: string;
           updated_at: string;
@@ -37,7 +37,7 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
-          return_policy_agreed_at?: string | null;
+          refund_policy_agreed_at?: string | null;
           role?: string;
           created_at?: string;
           updated_at?: string;
@@ -53,7 +53,7 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
-          return_policy_agreed_at?: string | null;
+          refund_policy_agreed_at?: string | null;
           role?: string;
           updated_at?: string;
         };
@@ -69,6 +69,7 @@ export type Database = {
           decided_at: string | null;
           decided_by: string | null;
           reason: string | null;
+          customer_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -79,6 +80,7 @@ export type Database = {
           decided_at?: string | null;
           decided_by?: string | null;
           reason?: string | null;
+          customer_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -89,6 +91,7 @@ export type Database = {
           decided_at?: string | null;
           decided_by?: string | null;
           reason?: string | null;
+          customer_reason?: string | null;
         };
         Relationships: [
           {

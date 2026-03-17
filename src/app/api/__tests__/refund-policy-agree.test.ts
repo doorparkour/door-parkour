@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST } from "../return-policy/agree/route";
+import { POST } from "../refund-policy/agree/route";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -38,7 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("POST /api/return-policy/agree", () => {
+describe("POST /api/refund-policy/agree", () => {
   it("returns 401 when not authenticated", async () => {
     vi.mocked(createClient).mockResolvedValue(
       makeSupabase({ authed: false }) as never
@@ -57,7 +57,7 @@ describe("POST /api/return-policy/agree", () => {
     expect(await res.json()).toEqual({ success: true });
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        return_policy_agreed_at: expect.any(String),
+        refund_policy_agreed_at: expect.any(String),
       })
     );
     expect(mockEq).toHaveBeenCalledWith("id", "user-1");
