@@ -9,26 +9,23 @@ import {
 import { toast } from "sonner";
 import AgreementScrollForm from "@/components/waiver/AgreementScrollForm";
 import {
-  RETURN_POLICY_TITLE,
-  RETURN_POLICY_CONTENT,
-} from "@/lib/return-policy/content";
-import { requestOrderRefund } from "@/lib/actions/orders";
+  REFUND_POLICY_TITLE,
+  REFUND_POLICY_CONTENT,
+} from "@/lib/refund-policy/content";
 
 type Props = {
-  orderId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 };
 
-export default function ReturnPolicyModal({
-  orderId,
+export default function RefundPolicyModal({
   open,
   onOpenChange,
   onSuccess,
 }: Props) {
   async function handleSubmit() {
-    const agreeRes = await fetch("/api/return-policy/agree", { method: "POST" });
+    const agreeRes = await fetch("/api/refund-policy/agree", { method: "POST" });
 
     if (agreeRes.status === 401) {
       toast.error("Please log in to continue.");
@@ -43,16 +40,6 @@ export default function ReturnPolicyModal({
       throw new Error(agreeData.error);
     }
 
-    const result = await requestOrderRefund(orderId);
-
-    if (result.error) {
-      toast.error("Refund request failed", { description: result.error });
-      throw new Error(result.error);
-    }
-
-    toast.success("Refund request submitted.", {
-      description: "If approved, you'll receive a refund — no return required.",
-    });
     onOpenChange(false);
     onSuccess();
   }
@@ -61,13 +48,13 @@ export default function ReturnPolicyModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{RETURN_POLICY_TITLE}</DialogTitle>
+          <DialogTitle>{REFUND_POLICY_TITLE}</DialogTitle>
         </DialogHeader>
         <AgreementScrollForm
-          title={RETURN_POLICY_TITLE}
-          content={RETURN_POLICY_CONTENT}
-          agreeLabel="I have read and agree to the return policy above."
-          submitLabel="I Agree & Request Refund"
+          title={REFUND_POLICY_TITLE}
+          content={REFUND_POLICY_CONTENT}
+          agreeLabel="I have read and agree to the refund policy above."
+          submitLabel="I Agree & Continue"
           onSubmit={handleSubmit}
           scrollHint="Scroll to the bottom to continue."
           asChild

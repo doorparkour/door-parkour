@@ -11,11 +11,13 @@ import {
   Text,
 } from "@react-email/components";
 import * as React from "react";
+import { getRejectionEmailCopy } from "@/lib/refund-rejection-reasons";
 
 interface OrderRefundRejectedEmailProps {
   orderId: string;
   totalDollars: string;
-  reason?: string;
+  /** Stored reason (code, "other|||message", or legacy free-text) */
+  reason?: string | null;
 }
 
 export function OrderRefundRejectedEmail({
@@ -23,6 +25,7 @@ export function OrderRefundRejectedEmail({
   totalDollars,
   reason,
 }: OrderRefundRejectedEmailProps) {
+  const reasonCopy = getRejectionEmailCopy(reason);
   return (
     <Html>
       <Head />
@@ -53,10 +56,10 @@ export function OrderRefundRejectedEmail({
               <Text style={rejectText}>
                 Unfortunately, we are unable to approve your refund request at this
                 time.
-                {reason && (
+                {reasonCopy && (
                   <>
                     {" "}
-                    <strong>Reason:</strong> {reason}
+                    <strong>Reason:</strong> {reasonCopy}
                   </>
                 )}
               </Text>

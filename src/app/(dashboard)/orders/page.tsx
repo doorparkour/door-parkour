@@ -45,7 +45,7 @@ export default async function OrdersPage({
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("return_policy_agreed_at")
+        .select("refund_policy_agreed_at")
         .eq("id", user.id)
         .single()
     : { data: null };
@@ -213,7 +213,7 @@ export default async function OrdersPage({
                   !ordersWithPendingRefund.has(order.id) && (
                     <RequestRefundButton
                       orderId={order.id}
-                      returnPolicyAgreedAt={profile?.return_policy_agreed_at ?? null}
+                      refundPolicyAgreedAt={profile?.refund_policy_agreed_at ?? null}
                     />
                   )}
               </CardContent>

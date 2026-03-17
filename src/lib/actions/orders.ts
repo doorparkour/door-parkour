@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 const ELIGIBLE_ORDER_STATUSES = ["paid", "fulfilled"] as const;
 
 export async function requestOrderRefund(
-  orderId: string
+  orderId: string,
+  customerReason?: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {
@@ -19,12 +20,12 @@ export async function requestOrderRefund(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("return_policy_agreed_at")
+    .select("refund_policy_agreed_at")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.return_policy_agreed_at) {
-    return { error: "You must agree to the return policy before requesting a refund." };
+  if (!profile?.refund_policy_agreed_at) {
+    return { error: "You must agree to the refund policy before requesting a refund." };
   }
 
   const { data: order, error: orderError } = await supabase
@@ -64,6 +65,7 @@ export async function requestOrderRefund(
     order_id: orderId,
     user_id: user.id,
     status: "pending",
+    customer_reason: customerReason?.trim() || null,
   });
 
   if (insertError) {

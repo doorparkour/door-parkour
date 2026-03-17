@@ -65,7 +65,7 @@ export function OrderRefundApprovedEmail({
             </Section>
 
             <Text style={paragraph}>
-              Thank you for your patience. We hope to see you at Door Parkour soon.
+              Thank you for your patience. We hope to see you at a future class.
             </Text>
 
             <Button style={button} href="https://doorparkour.com/merch">

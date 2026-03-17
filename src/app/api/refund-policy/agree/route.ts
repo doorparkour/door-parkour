@@ -14,7 +14,7 @@ export async function POST() {
 
   const { error } = await supabase
     .from("profiles")
-    .update({ return_policy_agreed_at: new Date().toISOString() })
+    .update({ refund_policy_agreed_at: new Date().toISOString() })
     .eq("id", user.id);
 
   if (error) {

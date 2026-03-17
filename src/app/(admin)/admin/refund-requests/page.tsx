@@ -23,6 +23,7 @@ export default async function AdminRefundRequestsPage() {
       order_id,
       user_id,
       requested_at,
+      customer_reason,
       orders (
         id,
         total_cents,
@@ -79,6 +80,9 @@ export default async function AdminRefundRequestsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Requested
                 </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Feedback
+                </th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -124,6 +128,16 @@ export default async function AdminRefundRequestsPage() {
                         minute: "2-digit",
                         timeZone: "America/Chicago",
                       }).format(new Date(r.requested_at))}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-muted-foreground max-w-[200px]"
+                      title={r.customer_reason ?? undefined}
+                    >
+                      {r.customer_reason ? (
+                        <span className="line-clamp-2">{r.customer_reason}</span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <ApproveOrderRefundButton requestId={r.id} />
