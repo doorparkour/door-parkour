@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import ApproveOrderRefundButton from "@/components/admin/ApproveOrderRefundButton";
 import RejectOrderRefundButton from "@/components/admin/RejectOrderRefundButton";
+import RefundRequestDetailModal from "@/components/admin/RefundRequestDetailModal";
 
 export const metadata: Metadata = { title: "Admin — Refund Requests" };
 
@@ -139,9 +140,15 @@ export default async function AdminRefundRequestsPage() {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <ApproveOrderRefundButton requestId={r.id} />
-                      <RejectOrderRefundButton requestId={r.id} />
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <RefundRequestDetailModal
+                          request={r}
+                          customerName={profileMap[r.user_id] ?? "—"}
+                        />
+                        <ApproveOrderRefundButton requestId={r.id} />
+                        <RejectOrderRefundButton requestId={r.id} />
+                      </div>
                     </td>
                   </tr>
                 );
