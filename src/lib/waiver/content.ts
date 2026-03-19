@@ -38,4 +38,11 @@ If I am signing on behalf of a minor participant, I represent that I am the pare
 This Waiver shall be governed by and construed in accordance with the laws of the State of Wisconsin, without regard to its conflict of laws principles.
 
 I have read this Waiver in its entirety, understand its terms, and agree to it voluntarily. I understand that I am giving up substantial legal rights by signing this Waiver.
+
+
+Participant (or Parent/Guardian) Signature: _______________________  Date: ___________
 `.trim();
+
+/** Placeholder in content to replace with filled signature when user has signed. */
+export const WAIVER_SIGNATURE_PLACEHOLDER =
+  "Participant (or Parent/Guardian) Signature: _______________________  Date: ___________";
