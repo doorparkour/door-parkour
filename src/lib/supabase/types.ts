@@ -21,6 +21,7 @@ export type Database = {
           date_of_birth: string | null;
           shirt_size: string | null;
           waiver_signed_at: string | null;
+          waiver_pdf_path: string | null;
           refund_policy_agreed_at: string | null;
           role: string;
           created_at: string;
@@ -37,6 +38,7 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
+          waiver_pdf_path?: string | null;
           refund_policy_agreed_at?: string | null;
           role?: string;
           created_at?: string;
@@ -53,6 +55,7 @@ export type Database = {
           date_of_birth?: string | null;
           shirt_size?: string | null;
           waiver_signed_at?: string | null;
+          waiver_pdf_path?: string | null;
           refund_policy_agreed_at?: string | null;
           role?: string;
           updated_at?: string;

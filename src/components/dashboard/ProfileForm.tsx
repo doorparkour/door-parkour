@@ -353,13 +353,24 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
         </CardHeader>
         <CardContent>
           {profile?.waiver_signed_at ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CircleCheck className="h-4 w-4 text-green-600" />
-              Waiver signed on{" "}
-              {new Intl.DateTimeFormat("en-US", {
-                dateStyle: "medium",
-              }).format(new Date(profile.waiver_signed_at))}
-            </p>
+            <div className="space-y-2">
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CircleCheck className="h-4 w-4 text-green-600" />
+                Waiver signed on{" "}
+                {new Intl.DateTimeFormat("en-US", {
+                  dateStyle: "medium",
+                }).format(new Date(profile.waiver_signed_at))}
+              </p>
+              {profile.waiver_pdf_path && (
+                <a
+                  href="/api/waiver/download"
+                  download="door-parkour-waiver.pdf"
+                  className="text-sm font-medium text-dp-orange hover:text-dp-orange-dark"
+                >
+                  Download PDF
+                </a>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">
               You haven&apos;t signed the waiver yet.{" "}
