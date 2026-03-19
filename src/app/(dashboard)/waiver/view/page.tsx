@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { WAIVER_TITLE, WAIVER_CONTENT } from "@/lib/waiver/content";
+import {
+  WAIVER_TITLE,
+  WAIVER_CONTENT,
+  WAIVER_SIGNATURE_PLACEHOLDER,
+} from "@/lib/waiver/content";
 import WaiverPrintButton from "@/components/waiver/WaiverPrintButton";
 
 export const metadata: Metadata = {
@@ -9,7 +14,34 @@ export const metadata: Metadata = {
   description: "View or download the Door Parkour liability waiver as PDF.",
 };
 
-export default function WaiverViewPage() {
+export default async function WaiverViewPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase
+        .from("profiles")
+        .select("full_name, waiver_signed_at")
+        .eq("id", user.id)
+        .single()
+    : { data: null };
+
+  const signedAt = profile?.waiver_signed_at;
+  const displayName = profile?.full_name?.trim() || "Participant";
+
+  const signatureBlock =
+    signedAt && user
+      ? `Signed by: ${displayName}\nDate: ${new Intl.DateTimeFormat("en-US", {
+          dateStyle: "long",
+        }).format(new Date(signedAt))}`
+      : WAIVER_SIGNATURE_PLACEHOLDER;
+
+  const content = WAIVER_CONTENT.replace(
+    WAIVER_SIGNATURE_PLACEHOLDER,
+    signatureBlock
+  );
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 print:flex-col print:items-stretch">
@@ -31,7 +63,7 @@ export default function WaiverViewPage() {
 
       <article className="rounded-lg border bg-background p-6 print:border-0 print:bg-transparent print:p-0">
         <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground print:text-black">
-          {WAIVER_CONTENT}
+          {content}
         </pre>
       </article>
 
