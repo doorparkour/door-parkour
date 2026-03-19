@@ -211,8 +211,7 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
                 <DialogHeader>
                   <DialogTitle>Participant name</DialogTitle>
                   <DialogDescription>
-                    This is a Youth class. Enter the name of the person attending (likely your
-                    child). The account is usually owned by a parent.
+                    This is a Youth class. Enter the name of the person attending.
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={onParticipantSubmit} className="space-y-4">
