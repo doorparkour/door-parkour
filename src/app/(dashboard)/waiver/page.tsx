@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck, FileText } from "lucide-react";
+import { CircleCheck, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WaiverSignForm from "@/components/waiver/WaiverSignForm";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +18,7 @@ export default async function WaiverPage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("waiver_signed_at")
+        .select("waiver_signed_at, waiver_pdf_path")
         .eq("id", user.id)
         .single()
     : { data: null };
@@ -44,10 +44,22 @@ export default async function WaiverPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
+          {profile.waiver_pdf_path && (
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href="/api/waiver/download"
+                download="door-parkour-waiver.pdf"
+                className="inline-flex items-center gap-2"
+              >
+                <FileDown className="h-4 w-4" />
+                Download PDF
+              </a>
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild>
             <Link href="/waiver/view" target="_blank" rel="noopener noreferrer" className="gap-2">
               <FileText className="h-4 w-4" />
-              View / Download PDF
+              View / Print PDF
             </Link>
           </Button>
           <Link href="/classes">
