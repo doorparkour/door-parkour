@@ -38,7 +38,7 @@ export default function SignUpForm() {
     }
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -53,6 +53,24 @@ export default function SignUpForm() {
       return;
     }
 
+    // Existing user: identities is empty. Supabase may not send magic link for signUp,
+    // so explicitly send one via signInWithOtp.
+    const isExistingUser =
+      data.user && (!data.user.identities || data.user.identities.length === 0);
+    if (isExistingUser) {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        },
+      });
+      if (otpError) {
+        toast.error("Sign in link failed", { description: otpError.message });
+        setLoading(false);
+        return;
+      }
+    }
+
     setEmail(email);
     setDone(true);
     setLoading(false);
@@ -61,8 +79,8 @@ export default function SignUpForm() {
   async function handleResend() {
     setResending(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.resend({
-      type: "signup",
+    // signInWithOtp works for both new (unconfirmed) and existing users
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
