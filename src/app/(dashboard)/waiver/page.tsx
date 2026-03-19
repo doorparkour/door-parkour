@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WaiverSignForm from "@/components/waiver/WaiverSignForm";
 import { createClient } from "@/lib/supabase/server";
@@ -43,11 +43,19 @@ export default async function WaiverPage() {
             </p>
           </div>
         </div>
-        <Link href="/classes">
-          <Button className="bg-dp-orange text-white hover:bg-dp-orange-dark">
-            Browse Classes
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/waiver/view" target="_blank" rel="noopener noreferrer" className="gap-2">
+              <FileText className="h-4 w-4" />
+              View / Download PDF
+            </Link>
           </Button>
-        </Link>
+          <Link href="/classes">
+            <Button className="bg-dp-orange text-white hover:bg-dp-orange-dark">
+              Browse Classes
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -59,6 +67,12 @@ export default async function WaiverPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           You must sign the liability waiver before booking a class.
         </p>
+        <Button variant="outline" size="sm" asChild className="mt-3">
+          <Link href="/waiver/view" target="_blank" rel="noopener noreferrer" className="gap-2">
+            <FileText className="h-4 w-4" />
+            View / Download PDF
+          </Link>
+        </Button>
       </div>
       <WaiverSignForm />
     </div>
