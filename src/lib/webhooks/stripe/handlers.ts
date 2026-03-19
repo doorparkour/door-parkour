@@ -17,7 +17,13 @@ export async function handleClassBooking(
   session: Stripe.Checkout.Session,
   meta: Record<string, string>
 ) {
-  const { user_id, class_id } = meta;
+  const { user_id, class_id, participant_name } = meta;
+
+  const bookingPayload = {
+    status: "confirmed" as const,
+    stripe_payment_intent_id: session.payment_intent as string,
+    ...(participant_name && { participant_name: participant_name.trim() }),
+  };
 
   const { data: existing } = await supabase
     .from("bookings")
@@ -27,19 +33,12 @@ export async function handleClassBooking(
     .single();
 
   if (existing) {
-    await supabase
-      .from("bookings")
-      .update({
-        status: "confirmed",
-        stripe_payment_intent_id: session.payment_intent as string,
-      })
-      .eq("id", existing.id);
+    await supabase.from("bookings").update(bookingPayload).eq("id", existing.id);
   } else {
     await supabase.from("bookings").insert({
       user_id,
       class_id,
-      status: "confirmed",
-      stripe_payment_intent_id: session.payment_intent as string,
+      ...bookingPayload,
     });
   }
 

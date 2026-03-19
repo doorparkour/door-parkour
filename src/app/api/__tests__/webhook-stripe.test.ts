@@ -94,6 +94,50 @@ describe("POST /api/webhooks/stripe", () => {
     expect(mockFrom).toHaveBeenCalledWith("bookings");
   });
 
+  it("includes participant_name in booking insert when present in metadata", async () => {
+    const insertSpy = vi.fn().mockReturnValue({});
+    const defaultReturn = { select: vi.fn(), insert: vi.fn(), update: vi.fn() };
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: null, error: null });
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }) }),
+          }),
+          insert: insertSpy,
+          update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({}) }),
+        };
+      }
+      if (table === "classes") {
+        const single = vi.fn().mockResolvedValue({
+          data: { title: "Intro", starts_at: "", location: "", duration_mins: 60, price_cents: 4500 },
+          error: null,
+        });
+        return {
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ single }) }),
+        };
+      }
+      return defaultReturn;
+    });
+
+    mockConstructEvent.mockReturnValue({
+      type: "checkout.session.completed",
+      data: {
+        object: makeSession("class_booking", { participant_name: "Emma Smith" }),
+      },
+    });
+
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    expect(insertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        participant_name: "Emma Smith",
+        user_id: "user-1",
+        class_id: "class-1",
+      })
+    );
+  });
+
   it("does not manually update classes table on new booking (DB trigger owns spot decrement)", async () => {
     const mockClassUpdate = vi.fn();
 
