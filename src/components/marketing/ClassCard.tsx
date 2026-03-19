@@ -4,6 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { MapPin, Clock, Loader2, FileSignature } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -48,6 +58,9 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
   const [imgSrc, setImgSrc] = useState(cls.image_url || FALLBACK_IMG);
   const imgRef = useRef<HTMLImageElement>(null);
   const isFull = cls.spots_remaining === 0;
+  const isYouth = cls.age_group === "youth";
+  const [participantDialogOpen, setParticipantDialogOpen] = useState(false);
+  const [participantName, setParticipantName] = useState("");
 
   useEffect(() => {
     const img = imgRef.current;
@@ -56,12 +69,22 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
     }
   }, []);
 
-  async function handleBook() {
+  async function handleBook(participantNameValue?: string) {
+    if (isYouth && !participantNameValue?.trim()) {
+      toast.error("Participant name required", {
+        description: "Please enter the name of the person attending the class.",
+      });
+      return;
+    }
+
     setLoading(true);
     const res = await fetch("/api/checkout/classes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ classId: cls.id }),
+      body: JSON.stringify({
+        classId: cls.id,
+        participantName: isYouth ? participantNameValue?.trim() ?? null : undefined,
+      }),
     });
 
     if (res.status === 401) {
@@ -82,7 +105,22 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
       return;
     }
 
+    setParticipantDialogOpen(false);
+    setParticipantName("");
     window.location.href = data.url;
+  }
+
+  function onBookClick() {
+    if (isYouth) {
+      setParticipantDialogOpen(true);
+    } else {
+      handleBook();
+    }
+  }
+
+  function onParticipantSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleBook(participantName);
   }
 
   return (
@@ -158,15 +196,58 @@ export default function ClassCard({ cls, waiverSigned, isAlreadyBooked }: ClassC
             Already Booked
           </Button>
         ) : (
-          <Button
-            size="sm"
-            disabled={isFull || loading}
-            onClick={handleBook}
-            className="bg-dp-orange text-white hover:bg-dp-orange-dark disabled:opacity-50"
-          >
-            {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-            {isFull ? "Sold Out" : "Book Now"}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              disabled={isFull || loading}
+              onClick={onBookClick}
+              className="bg-dp-orange text-white hover:bg-dp-orange-dark disabled:opacity-50"
+            >
+              {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {isFull ? "Sold Out" : "Book Now"}
+            </Button>
+            <Dialog open={participantDialogOpen} onOpenChange={setParticipantDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Participant name</DialogTitle>
+                  <DialogDescription>
+                    This is a Youth class. Enter the name of the person attending (likely your
+                    child). The account is usually owned by a parent.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onParticipantSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="participant-name">Participant name</Label>
+                    <Input
+                      id="participant-name"
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
+                      placeholder="e.g. Emma Smith"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setParticipantDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading || !participantName.trim()}
+                      className="bg-dp-orange text-white hover:bg-dp-orange-dark"
+                    >
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Continue to payment
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </CardFooter>
     </Card>

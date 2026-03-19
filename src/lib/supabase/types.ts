@@ -171,6 +171,7 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id: string | null;
           refund_email_sent_at: string | null;
+          participant_name: string | null;
           created_at: string;
         };
         Insert: {
@@ -180,6 +181,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id?: string | null;
           refund_email_sent_at?: string | null;
+          participant_name?: string | null;
           created_at?: string;
         };
         Update: {
@@ -189,6 +191,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"];
           stripe_payment_intent_id?: string | null;
           refund_email_sent_at?: string | null;
+          participant_name?: string | null;
         };
         Relationships: [
           {

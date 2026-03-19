@@ -16,10 +16,12 @@ export default async function AdminBookingsPage() {
       status,
       created_at,
       stripe_payment_intent_id,
+      participant_name,
       classes (
         title,
         starts_at,
-        price_cents
+        price_cents,
+        age_group
       )
     `)
     .order("created_at", { ascending: false });
@@ -69,6 +71,9 @@ export default async function AdminBookingsPage() {
                   Customer
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  Participant
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                   Class
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -85,8 +90,15 @@ export default async function AdminBookingsPage() {
             </thead>
             <tbody className="divide-y">
               {bookings.map((b) => {
-                const cls = b.classes as { title: string; starts_at: string; price_cents: number } | null;
+                const cls = b.classes as {
+                  title: string;
+                  starts_at: string;
+                  price_cents: number;
+                  age_group?: string;
+                } | null;
                 const fullName = profileMap[b.user_id] ?? "—";
+                const participantDisplay =
+                  b.participant_name ?? (cls?.age_group === "youth" ? "—" : null);
                 const priceDollars = cls
                   ? new Intl.NumberFormat("en-US", {
                       style: "currency",
@@ -97,6 +109,9 @@ export default async function AdminBookingsPage() {
                 return (
                   <tr key={b.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3 font-medium">{fullName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {participantDisplay ?? fullName}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {cls?.title ?? "—"}
                     </td>

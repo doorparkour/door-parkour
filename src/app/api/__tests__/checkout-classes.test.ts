@@ -149,4 +149,53 @@ describe("POST /api/checkout/classes", () => {
       })
     );
   });
+
+  it("returns 400 when Youth class is booked without participantName", async () => {
+    const cls = {
+      id: "class-1",
+      title: "Intro",
+      price_cents: 4500,
+      spots_remaining: 5,
+      location: "Park",
+      starts_at: new Date().toISOString(),
+      age_group: "youth",
+    };
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ cls }) as never
+    );
+
+    const res = await POST(makeRequest({ classId: "class-1" }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      error: "Participant name is required for Youth classes.",
+    });
+  });
+
+  it("passes participant_name in metadata for Youth class", async () => {
+    const cls = {
+      id: "class-1",
+      title: "Intro",
+      price_cents: 4500,
+      spots_remaining: 5,
+      location: "Park",
+      starts_at: new Date().toISOString(),
+      age_group: "youth",
+    };
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ cls }) as never
+    );
+
+    await POST(makeRequest({ classId: "class-1", participantName: "Emma Smith" }));
+
+    expect(mockSessionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          type: "class_booking",
+          user_id: "user-1",
+          class_id: "class-1",
+          participant_name: "Emma Smith",
+        }),
+      })
+    );
+  });
 });

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { classId } = await request.json();
+  const { classId, participantName } = await request.json();
 
   if (!classId) {
     return NextResponse.json({ error: "classId required" }, { status: 400 });
@@ -46,6 +46,16 @@ export async function POST(request: Request) {
 
   if (cls.spots_remaining <= 0) {
     return NextResponse.json({ error: "Class is full" }, { status: 409 });
+  }
+
+  if (cls.age_group === "youth") {
+    const name = typeof participantName === "string" ? participantName.trim() : "";
+    if (!name) {
+      return NextResponse.json(
+        { error: "Participant name is required for Youth classes." },
+        { status: 400 }
+      );
+    }
   }
 
   const { data: existingBooking } = await supabase
@@ -91,6 +101,11 @@ export async function POST(request: Request) {
       type: "class_booking",
       user_id: user.id,
       class_id: classId,
+      ...(cls.age_group === "youth" &&
+        typeof participantName === "string" &&
+        participantName.trim() && {
+          participant_name: participantName.trim(),
+        }),
     },
     customer_email: user.email,
     success_url: `${origin}/bookings?success=1`,
