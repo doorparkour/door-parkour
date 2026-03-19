@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil } from "lucide-react";
 import CancelClassButton from "@/components/admin/CancelClassButton";
+import ClassParticipantsSheet from "@/components/admin/ClassParticipantsSheet";
 import { cancelClass } from "@/lib/actions/admin";
 
 export const metadata: Metadata = { title: "Admin — Classes" };
@@ -24,13 +25,33 @@ export default async function AdminClassesPage({
     .eq("is_cancelled", activeTab === "cancelled")
     .order("starts_at", { ascending: false });
 
-  // Fetch active booking counts per class
-  const { data: bookingCounts } = await supabase
+  // Fetch active bookings with participant and customer info
+  const { data: bookings } = await supabase
     .from("bookings")
-    .select("class_id")
+    .select("class_id, participant_name, user_id")
     .in("status", ["confirmed", "waitlist"]);
 
-  const countByClass = (bookingCounts ?? []).reduce<Record<string, number>>(
+  const userIds = [...new Set((bookings ?? []).map((b) => b.user_id))];
+  const { data: profiles } =
+    userIds.length > 0
+      ? await supabase.from("profiles").select("id, full_name").in("id", userIds)
+      : { data: [] };
+  const profileMap = Object.fromEntries(
+    (profiles ?? []).map((p) => [p.id, p.full_name])
+  );
+
+  const participantsByClass = (bookings ?? []).reduce<
+    Record<string, Array<{ participant_name: string | null; customer_name: string | null }>>
+  >((acc, b) => {
+    if (!acc[b.class_id]) acc[b.class_id] = [];
+    acc[b.class_id].push({
+      participant_name: b.participant_name,
+      customer_name: profileMap[b.user_id] ?? null,
+    });
+    return acc;
+  }, {});
+
+  const countByClass = (bookings ?? []).reduce<Record<string, number>>(
     (acc, b) => {
       acc[b.class_id] = (acc[b.class_id] ?? 0) + 1;
       return acc;
@@ -91,6 +112,7 @@ export default async function AdminClassesPage({
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Spots</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Booked</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -117,6 +139,21 @@ export default async function AdminClassesPage({
                     <td className="px-4 py-3 text-muted-foreground">{cls.location}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {cls.spots_remaining}/{cls.capacity}
+                    </td>
+                    <td className="px-4 py-3">
+                      <ClassParticipantsSheet
+                        classTitle={cls.title}
+                        classDate={new Intl.DateTimeFormat("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          timeZone: "America/Chicago",
+                        }).format(new Date(cls.starts_at))}
+                        participants={participantsByClass[cls.id] ?? []}
+                        bookedCount={bookedCount}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       {cls.is_cancelled ? (
