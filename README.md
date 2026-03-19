@@ -6,11 +6,12 @@ This project can also serve as a **template** for other small businesses (studio
 
 ## What's on the site
 
-- **Classes** — Browse and book parkour classes
+- **Classes** — Browse and book parkour classes (youth and adult; participant name for youth)
 - **Merch** — Apparel and accessories
 - **About** — Coach bio and values
 - **Contact** — Get in touch
-- **Dashboard** — Bookings, orders, profile (sign in required)
+- **Dashboard** — Bookings, orders, profile, waiver (sign in required)
+- **Admin** — Classes, bookings, merch, refund requests (admin role)
 
 ## Tech stack
 
@@ -19,6 +20,7 @@ This project can also serve as a **template** for other small businesses (studio
 - **Backend**: Supabase (Auth, PostgreSQL, Storage)
 - **Payments**: Stripe (Checkout + Webhooks)
 - **Email**: Resend + React Email (transactional emails)
+- **PDF**: pdf-lib (waiver generation and storage)
 - **Forms**: React Hook Form + Zod
 - **State**: Zustand (cart)
 - **Deployment**: Vercel
