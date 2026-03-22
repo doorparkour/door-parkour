@@ -376,9 +376,22 @@ export async function updateClass(
   const parsed = parseClassInput(formData);
   if (parsed.error) return { error: parsed.error };
 
+  const row = unwrap(parsed);
+
+  const { count, error: countError } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("class_id", id)
+    .eq("status", "confirmed");
+
+  if (countError) return { error: countError.message };
+
+  const confirmed = count ?? 0;
+  const spots_remaining = Math.max(0, row.capacity - confirmed);
+
   const { error } = await supabase
     .from("classes")
-    .update(unwrap(parsed))
+    .update({ ...row, spots_remaining })
     .eq("id", id);
 
   if (error) return { error: error.message };
