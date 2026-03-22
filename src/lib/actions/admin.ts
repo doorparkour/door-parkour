@@ -18,6 +18,7 @@ import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { ClassCancellationEmail } from "@/lib/email/ClassCancellationEmail";
 import { ClassCancellationAdminEmail } from "@/lib/email/ClassCancellationAdminEmail";
+import { sendManualRefundEmail } from "@/lib/bookings/send-manual-refund-email";
 import { OrderRefundApprovedEmail } from "@/lib/email/OrderRefundApprovedEmail";
 import { OrderRefundRejectedEmail } from "@/lib/email/OrderRefundRejectedEmail";
 
@@ -185,10 +186,29 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
     return { error: msg };
   }
 
+  const sentAt = new Date().toISOString();
   await supabase
     .from("bookings")
-    .update({ status: "refunded" })
+    .update({ status: "refunded", refund_email_sent_at: sentAt })
     .eq("id", bookingId);
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("title, starts_at, price_cents")
+    .eq("id", booking.class_id)
+    .single();
+
+  const adminSupabase = getAdminSupabase();
+  const { data: userData } = await adminSupabase.auth.admin.getUserById(booking.user_id);
+  const customerEmail = userData?.user?.email;
+
+  if (cls && customerEmail) {
+    try {
+      await sendManualRefundEmail({ to: customerEmail, cls });
+    } catch (err) {
+      console.error("[refundBooking] Refund confirmation email failed:", err);
+    }
+  }
 
   revalidatePath("/admin/bookings");
   revalidatePath("/bookings");
