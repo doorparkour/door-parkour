@@ -18,11 +18,12 @@ export async function handleClassBooking(
   meta: Record<string, string>
 ) {
   const { user_id, class_id, participant_name } = meta;
+  const trimmedParticipantName = participant_name?.trim() || undefined;
 
   const bookingPayload = {
     status: "confirmed" as const,
     stripe_payment_intent_id: session.payment_intent as string,
-    ...(participant_name && { participant_name: participant_name.trim() }),
+    ...(trimmedParticipantName && { participant_name: trimmedParticipantName }),
   };
 
   const { data: existing } = await supabase
@@ -62,6 +63,7 @@ export async function handleClassBooking(
             location: cls.location,
             durationMins: cls.duration_mins,
             priceDollars: formatPriceDollars(cls.price_cents),
+            ...(trimmedParticipantName && { participantName: trimmedParticipantName }),
           })
         ),
       });
