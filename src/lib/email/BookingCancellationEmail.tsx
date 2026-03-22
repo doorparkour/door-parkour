@@ -68,8 +68,14 @@ export function BookingCancellationEmail({
               </Section>
             ) : (
               <Text style={paragraph}>
-                Refunds require 24+ hours notice. Your cancellation was within the
-                24-hour window, so no refund was issued.
+                No automatic refund was issued for this cancellation. We only process
+                full refunds automatically when a booking is cancelled at least 24 hours
+                before the scheduled class start. If you have questions or think your
+                situation should be reviewed, reach out at{" "}
+                <a href="https://doorparkour.com/contact" style={link}>
+                  doorparkour.com/contact
+                </a>
+                .
               </Text>
             )}
 
