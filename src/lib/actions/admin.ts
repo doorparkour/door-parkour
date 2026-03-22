@@ -19,6 +19,7 @@ import { render } from "@react-email/components";
 import { ClassCancellationEmail } from "@/lib/email/ClassCancellationEmail";
 import { ClassCancellationAdminEmail } from "@/lib/email/ClassCancellationAdminEmail";
 import { sendManualRefundEmail } from "@/lib/bookings/send-manual-refund-email";
+import { BookingCancellationEmail } from "@/lib/email/BookingCancellationEmail";
 import { OrderRefundApprovedEmail } from "@/lib/email/OrderRefundApprovedEmail";
 import { OrderRefundRejectedEmail } from "@/lib/email/OrderRefundRejectedEmail";
 
@@ -214,6 +215,100 @@ export async function refundBooking(bookingId: string): Promise<{ error?: string
   revalidatePath("/bookings");
 
   return {};
+}
+
+const BOOKING_REFUND_HOURS = 24;
+
+/** Same rules as user `cancelBooking`: frees the seat (`cancelled`), refunds if ≥24h before class and PI exists. */
+export async function adminCancelBooking(
+  bookingId: string
+): Promise<{ error?: string; refundEligible?: boolean }> {
+  await requireAdmin();
+  const supabase = await createClient();
+  const stripe = getStripe();
+  const adminSupabase = getAdminSupabase();
+
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .select("id, user_id, status, stripe_payment_intent_id, class_id")
+    .eq("id", bookingId)
+    .single();
+
+  if (bookingError || !booking) {
+    return { error: "Booking not found." };
+  }
+
+  if (booking.status !== "confirmed") {
+    return { error: "Only confirmed bookings can be cancelled." };
+  }
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("title, starts_at")
+    .eq("id", booking.class_id)
+    .single();
+
+  if (!cls) {
+    return { error: "Class not found." };
+  }
+
+  const startsAt = new Date(cls.starts_at);
+  const hoursUntilClass =
+    (startsAt.getTime() - Date.now()) / (1000 * 60 * 60);
+  const refundEligible =
+    hoursUntilClass >= BOOKING_REFUND_HOURS;
+
+  const { error: updateError } = await supabase
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId);
+
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  if (refundEligible && booking.stripe_payment_intent_id) {
+    try {
+      await stripe.refunds.create({
+        payment_intent: booking.stripe_payment_intent_id,
+      });
+    } catch (err) {
+      console.error("[adminCancelBooking] Stripe refund failed:", err);
+    }
+  }
+
+  const { data: userData } = await adminSupabase.auth.admin.getUserById(
+    booking.user_id
+  );
+  const customerEmail = userData?.user?.email;
+
+  if (customerEmail) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    try {
+      await resend.emails.send({
+        from: "Door Parkour <noreply@doorparkour.com>",
+        to: customerEmail,
+        subject: `Booking Cancelled: ${cls.title}`,
+        html: await render(
+          BookingCancellationEmail({
+            className: cls.title,
+            classDate: formatClassDate(startsAt),
+            refundEligible,
+            cancelledByTeam: true,
+          })
+        ),
+      });
+    } catch (err) {
+      console.error("[adminCancelBooking] Cancellation email failed:", err);
+    }
+  }
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/bookings");
+  revalidatePath("/dashboard");
+  revalidatePath("/classes");
+
+  return { refundEligible };
 }
 
 // ── Order refund requests ─────────────────────────────────────

@@ -8,6 +8,7 @@ import {
   archiveProduct,
   unarchiveProduct,
   refundBooking,
+  adminCancelBooking,
   approveOrderRefund,
   rejectOrderRefund,
 } from "@/lib/actions/admin";
@@ -740,6 +741,152 @@ describe("refundBooking", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
     expect(revalidatePath).toHaveBeenCalledWith("/bookings");
+  });
+});
+
+// ── adminCancelBooking ───────────────────────────────────────
+
+describe("adminCancelBooking", () => {
+  const bookingId = "booking-1";
+  const booking = {
+    id: bookingId,
+    user_id: "user-1",
+    status: "confirmed",
+    stripe_payment_intent_id: "pi_xxx",
+    class_id: "class-1",
+  };
+
+  function makeAdminCancelSupabase(opts: {
+    booking?: object | null;
+    bookingError?: { message: string } | null;
+    classRow?: object | null;
+    classError?: { message: string } | null;
+    updateError?: { message: string } | null;
+  } = {}) {
+    const b = opts.booking ?? booking;
+    const single = vi.fn();
+    single
+      .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
+      .mockResolvedValueOnce({ data: b, error: opts.bookingError ?? null });
+
+    const bData = b as { status?: string } | null;
+    const needClass =
+      bData &&
+      opts.bookingError == null &&
+      bData.status === "confirmed";
+
+    if (needClass) {
+      single.mockResolvedValueOnce({
+        data: opts.classRow !== undefined ? opts.classRow : {
+          title: "Test Class",
+          starts_at: "2099-06-06T10:00:00Z",
+        },
+        error: opts.classError ?? null,
+      });
+    }
+
+    const updateEq = vi.fn().mockResolvedValue({
+      data: null,
+      error: opts.updateError ?? null,
+    });
+    const mockBookingUpdate = vi.fn().mockReturnValue({ eq: updateEq });
+
+    const from = vi.fn((table: string) => {
+      if (table === "bookings") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single }),
+          }),
+          update: mockBookingUpdate,
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single }),
+          }),
+        };
+      }
+      if (table === "classes") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ single }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        }),
+      };
+    });
+
+    return {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
+      from,
+      mockBookingUpdate,
+    };
+  }
+
+  it("redirects when not admin", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ user: null }) as never
+    );
+    await expect(adminCancelBooking(bookingId)).rejects.toThrow("REDIRECT:/login");
+  });
+
+  it("returns error when booking not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeAdminCancelSupabase({
+        booking: null,
+        bookingError: { message: "not found" },
+      }) as never
+    );
+    const result = await adminCancelBooking(bookingId);
+    expect(result.error).toBe("Booking not found.");
+  });
+
+  it("returns error when booking is not confirmed", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeAdminCancelSupabase({
+        booking: { ...booking, status: "cancelled" },
+      }) as never
+    );
+    const result = await adminCancelBooking(bookingId);
+    expect(result.error).toBe("Only confirmed bookings can be cancelled.");
+  });
+
+  it("returns error when class not found", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeAdminCancelSupabase({
+        classRow: null,
+        classError: { message: "not found" },
+      }) as never
+    );
+    const result = await adminCancelBooking(bookingId);
+    expect(result.error).toBe("Class not found.");
+  });
+
+  it("returns error when update fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeAdminCancelSupabase({ updateError: { message: "rls" } }) as never
+    );
+    const result = await adminCancelBooking(bookingId);
+    expect(result.error).toBe("rls");
+  });
+
+  it("updates booking to cancelled and revalidates paths", async () => {
+    const client = makeAdminCancelSupabase();
+    vi.mocked(createClient).mockResolvedValue(client as never);
+
+    const result = await adminCancelBooking(bookingId);
+    expect(result.error).toBeUndefined();
+    expect(result.refundEligible).toBe(true);
+    expect(client.mockBookingUpdate).toHaveBeenCalledWith({ status: "cancelled" });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
+    expect(revalidatePath).toHaveBeenCalledWith("/bookings");
+    expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(revalidatePath).toHaveBeenCalledWith("/classes");
   });
 });
 

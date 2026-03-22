@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
+import AdminCancelBookingButton from "@/components/admin/AdminCancelBookingButton";
 import RefundBookingButton from "@/components/admin/RefundBookingButton";
 
 export const metadata: Metadata = { title: "Admin — Bookings" };
@@ -56,7 +57,8 @@ export default async function AdminBookingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-dp-teal">Bookings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View all bookings. Issue manual refunds for service recovery.
+          View all bookings. Cancel to free a spot (customer flow); refund only
+          returns money without cancelling the booking row.
         </p>
       </div>
 
@@ -141,13 +143,21 @@ export default async function AdminBookingsPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {canRefund(b) && cls && (
-                        <RefundBookingButton
-                          bookingId={b.id}
-                          className={cls.title}
-                          priceDollars={priceDollars}
-                        />
-                      )}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {b.status === "confirmed" && cls && (
+                          <AdminCancelBookingButton
+                            bookingId={b.id}
+                            className={cls.title}
+                          />
+                        )}
+                        {canRefund(b) && cls && (
+                          <RefundBookingButton
+                            bookingId={b.id}
+                            className={cls.title}
+                            priceDollars={priceDollars}
+                          />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

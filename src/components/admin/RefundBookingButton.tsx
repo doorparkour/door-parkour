@@ -55,11 +55,13 @@ export default function RefundBookingButton({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Issue manual refund?</DialogTitle>
+          <DialogTitle>Refund payment only?</DialogTitle>
           <DialogDescription>
-            This will refund {priceDollars} for <strong>{className}</strong> to the
-            customer&apos;s original payment method. An email will be sent notifying
-            them. Use for service recovery or other exceptions.
+            Refunds {priceDollars} for <strong>{className}</strong> to the
+            customer&apos;s card. The booking becomes <strong>refunded</strong>{" "}
+            (not <strong>cancelled</strong>), so the class roster spot is{" "}
+            <strong>not</strong> freed—use <strong>Cancel booking</strong> for
+            that. Use this for goodwill, duplicates, or other money-only fixes.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
