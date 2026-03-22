@@ -16,12 +16,15 @@ interface BookingCancellationEmailProps {
   className: string;
   classDate: string;
   refundEligible: boolean;
+  /** Set when support cancels on the customer’s behalf */
+  cancelledByTeam?: boolean;
 }
 
 export function BookingCancellationEmail({
   className,
   classDate,
   refundEligible,
+  cancelledByTeam,
 }: BookingCancellationEmailProps) {
   return (
     <Html>
@@ -36,7 +39,9 @@ export function BookingCancellationEmail({
           <Section style={content}>
             <Heading style={h1}>Booking Cancelled</Heading>
             <Text style={paragraph}>
-              We&apos;ve cancelled your booking for the following class:
+              {cancelledByTeam
+                ? "Our team cancelled your spot for the following class (for example, if you contacted us and couldn\u2019t sign in to cancel yourself):"
+                : "We\u2019ve cancelled your booking for the following class:"}
             </Text>
 
             <Section style={card}>
