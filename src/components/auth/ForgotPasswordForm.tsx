@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, MailCheck, RotateCcw } from "lucide-react";
+import { authRedirectOrigin } from "@/lib/auth-redirect-origin";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordForm() {
@@ -24,7 +25,7 @@ export default function ForgotPasswordForm() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/reset-password`,
+      redirectTo: `${authRedirectOrigin()}/auth/callback?next=/auth/reset-password`,
     });
 
     if (error) {
@@ -42,7 +43,7 @@ export default function ForgotPasswordForm() {
     setResending(true);
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/reset-password`,
+      redirectTo: `${authRedirectOrigin()}/auth/callback?next=/auth/reset-password`,
     });
     setResending(false);
     if (error) {

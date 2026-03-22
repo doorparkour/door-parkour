@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { authRedirectOrigin } from "@/lib/auth-redirect-origin";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
@@ -65,7 +66,7 @@ export default function LoginForm() {
       type: "signup",
       email: unconfirmedEmail,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
       },
     });
     setResending(false);
