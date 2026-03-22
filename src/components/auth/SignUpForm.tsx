@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, CheckCircle } from "lucide-react";
+import { authRedirectOrigin } from "@/lib/auth-redirect-origin";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpForm() {
@@ -43,7 +44,7 @@ export default function SignUpForm() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
       },
     });
 
@@ -61,7 +62,7 @@ export default function SignUpForm() {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
         },
       });
       if (otpError) {
@@ -83,7 +84,7 @@ export default function SignUpForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${authRedirectOrigin()}/auth/callback`,
       },
     });
     setResending(false);

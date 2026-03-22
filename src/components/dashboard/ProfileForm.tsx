@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2, CircleCheck, Camera, X } from "lucide-react";
+import { authRedirectOrigin } from "@/lib/auth-redirect-origin";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
@@ -67,7 +68,7 @@ export default function ProfileForm({ profile, email }: ProfileFormProps) {
       const { error: emailError } = await supabase.auth.updateUser(
         { email: newEmail },
         {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+          emailRedirectTo: `${authRedirectOrigin()}/auth/callback?next=/profile`,
         }
       );
       if (emailError) {
