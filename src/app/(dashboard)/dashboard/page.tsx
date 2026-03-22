@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { userHasCompletedEligibleClass } from "@/lib/bookings/member-feedback-eligibility";
+import MemberFeedbackForm from "@/components/dashboard/MemberFeedbackForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, ShoppingBag, ArrowRight } from "lucide-react";
+import { Calendar, ShoppingBag, ArrowRight, MessageSquareQuote } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -14,27 +16,37 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: bookings }, { data: orders }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, display_name")
-        .eq("id", user!.id)
-        .single(),
-      supabase
-        .from("bookings")
-        .select("id, status, created_at, classes(title, starts_at, location)")
-        .eq("user_id", user!.id)
-        .eq("status", "confirmed")
-        .order("created_at", { ascending: false })
-        .limit(3),
-      supabase
-        .from("orders")
-        .select("id, status, total_cents, created_at")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(3),
-    ]);
+  const [
+    { data: profile },
+    { data: bookings },
+    { data: orders },
+    { data: existingFeedback },
+    eligibleForFeedback,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, display_name")
+      .eq("id", user!.id)
+      .single(),
+    supabase
+      .from("bookings")
+      .select("id, status, created_at, classes(title, starts_at, location)")
+      .eq("user_id", user!.id)
+      .eq("status", "confirmed")
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase
+      .from("orders")
+      .select("id, status, total_cents, created_at")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase.from("member_feedback").select("id").eq("user_id", user!.id).maybeSingle(),
+    userHasCompletedEligibleClass(supabase, user!.id),
+  ]);
+
+  const showMemberFeedbackCard =
+    eligibleForFeedback && !existingFeedback;
 
   const greetingName =
     profile?.display_name?.trim() ||
@@ -94,6 +106,24 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showMemberFeedbackCard ? (
+        <Card className="border-dp-teal/30">
+          <CardHeader className="flex flex-row items-start gap-3 space-y-0 pb-2">
+            <MessageSquareQuote className="h-5 w-5 shrink-0 text-dp-orange" aria-hidden />
+            <div>
+              <CardTitle className="text-base">How were the class and coaching?</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This is your one-time review of Door Parkour. We&apos;d love honest feedback on the class
+                experience and coaching. If you opt in below, we may use quotes for marketing.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <MemberFeedbackForm />
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Upcoming classes */}
       <Card>

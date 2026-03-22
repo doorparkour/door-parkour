@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { LayoutGrid, Calendar, ShoppingBag, TicketCheck, RotateCcw } from "lucide-react";
+import { LayoutGrid, Calendar, ShoppingBag, TicketCheck, RotateCcw, MessageSquareQuote } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
 
 export default async function AdminLayout({
@@ -38,6 +38,7 @@ export default async function AdminLayout({
             { href: "/admin/bookings", icon: TicketCheck, label: "Bookings" },
             { href: "/admin/products", icon: ShoppingBag, label: "Products" },
             { href: "/admin/refund-requests", icon: RotateCcw, label: "Refund Requests" },
+            { href: "/admin/member-feedback", icon: MessageSquareQuote, label: "Member feedback" },
           ].map(({ href, icon: Icon, label }) => (
             <Link
               key={href}
