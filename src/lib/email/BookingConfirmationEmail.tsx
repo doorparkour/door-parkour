@@ -19,6 +19,8 @@ interface BookingConfirmationEmailProps {
   location: string;
   durationMins: number;
   priceDollars: string;
+  /** Youth / guardian checkout: attendee name stored on the booking */
+  participantName?: string;
 }
 
 export function BookingConfirmationEmail({
@@ -27,11 +29,16 @@ export function BookingConfirmationEmail({
   location,
   durationMins,
   priceDollars,
+  participantName,
 }: BookingConfirmationEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>You&apos;re booked for {className}!</Preview>
+      <Preview>
+        {participantName
+          ? `${participantName}'s spot is confirmed for ${className}!`
+          : `You\u2019re booked for ${className}!`}
+      </Preview>
       <Body style={body}>
         <Container style={container}>
           {/* Header */}
@@ -50,6 +57,14 @@ export function BookingConfirmationEmail({
             <Section style={card}>
               <Text style={cardLabel}>CLASS</Text>
               <Text style={cardValue}>{className}</Text>
+
+              {participantName ? (
+                <>
+                  <Hr style={divider} />
+                  <Text style={cardLabel}>PARTICIPANT</Text>
+                  <Text style={cardValue}>{participantName}</Text>
+                </>
+              ) : null}
 
               <Hr style={divider} />
 
