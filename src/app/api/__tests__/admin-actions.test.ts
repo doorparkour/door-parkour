@@ -73,6 +73,8 @@ function makeSupabase({
   user = { id: "user-1" } as object | null,
   role = "admin",
   dbError = null as { message: string } | null,
+  confirmedBookingCount = 0,
+  bookingCountError = null as { message: string } | null,
 } = {}) {
   const single = vi.fn();
   const inFn = vi.fn().mockResolvedValue({ data: null, count: 0, error: null });
@@ -99,6 +101,19 @@ function makeSupabase({
       getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }),
     },
     from: vi.fn().mockImplementation((table: string) => {
+      if (table === "bookings") {
+        const lastEq = vi.fn().mockResolvedValue({
+          count: bookingCountError ? null : confirmedBookingCount,
+          error: bookingCountError,
+        });
+        const firstEq = vi.fn().mockReturnValue({ eq: lastEq });
+        return {
+          select: vi.fn().mockReturnValue({ eq: firstEq }),
+          insert: mockInsert,
+          update: mockUpdate,
+          delete: mockDelete,
+        };
+      }
       const base = {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({ single, in: inFn }),
@@ -296,9 +311,34 @@ describe("updateClass", () => {
       updateClass("class-1", classFormData({ is_published: "on" }))
     ).rejects.toThrow("REDIRECT:/admin/classes");
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Intro to Parkour", is_published: true })
+      expect.objectContaining({
+        title: "Intro to Parkour",
+        is_published: true,
+        spots_remaining: 8,
+      })
     );
     expect(mockUpdateEq).toHaveBeenCalledWith("id", "class-1");
+  });
+
+  it("sets spots_remaining from capacity minus confirmed bookings", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ confirmedBookingCount: 3 }) as never
+    );
+    await expect(updateClass("class-1", classFormData({ capacity: "10" }))).rejects.toThrow(
+      "REDIRECT:/admin/classes"
+    );
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ capacity: 10, spots_remaining: 7 })
+    );
+  });
+
+  it("returns error when confirmed booking count query fails", async () => {
+    vi.mocked(createClient).mockResolvedValue(
+      makeSupabase({ bookingCountError: { message: "count failed" } }) as never
+    );
+    const result = await updateClass("class-1", classFormData());
+    expect(result).toEqual({ error: "count failed" });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });
 
