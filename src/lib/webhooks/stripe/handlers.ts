@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { BookingConfirmationEmail } from "@/lib/email/BookingConfirmationEmail";
-import { ManualRefundEmail } from "@/lib/email/ManualRefundEmail";
+import { sendManualRefundEmail } from "@/lib/bookings/send-manual-refund-email";
 import { formatClassDate } from "@/lib/format/date";
 import { formatPriceDollars } from "@/lib/format/currency";
 import type { Database } from "@/lib/supabase/types";
@@ -157,17 +157,28 @@ export async function handleRefund(supabase: WebhookSupabase, charge: Stripe.Cha
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, user_id, class_id, refund_email_sent_at")
+    .select("id, user_id, class_id, refund_email_sent_at, status")
     .eq("stripe_payment_intent_id", paymentIntentId)
     .single();
 
   if (booking) {
-    await supabase
-      .from("bookings")
-      .update({ status })
-      .eq("id", booking.id);
+    // User/class cancellation already emailed refund details (BookingCancellationEmail /
+    // ClassCancellationEmail). Do not send ManualRefundEmail again when Stripe fires.
+    const refundEmailAlreadyCovered =
+      booking.status === "cancelled" && !booking.refund_email_sent_at;
 
-    if (!booking.refund_email_sent_at) {
+    const bookingUpdate: {
+      status: typeof status;
+      refund_email_sent_at?: string;
+    } = { status };
+
+    if (refundEmailAlreadyCovered) {
+      bookingUpdate.refund_email_sent_at = new Date().toISOString();
+    }
+
+    await supabase.from("bookings").update(bookingUpdate).eq("id", booking.id);
+
+    if (!booking.refund_email_sent_at && !refundEmailAlreadyCovered) {
       const { data: cls } = await supabase
         .from("classes")
         .select("title, starts_at, price_cents")
@@ -178,18 +189,7 @@ export async function handleRefund(supabase: WebhookSupabase, charge: Stripe.Cha
       const email = userData?.user?.email;
 
       if (cls && email) {
-        await resend.emails.send({
-          from: "Door Parkour <noreply@doorparkour.com>",
-          to: email,
-          subject: `Refund Issued: ${cls.title}`,
-          html: await render(
-            ManualRefundEmail({
-              className: cls.title,
-              classDate: formatClassDate(cls.starts_at),
-              priceDollars: formatPriceDollars(cls.price_cents),
-            })
-          ),
-        });
+        await sendManualRefundEmail({ to: email, cls });
         await supabase
           .from("bookings")
           .update({ refund_email_sent_at: new Date().toISOString() })

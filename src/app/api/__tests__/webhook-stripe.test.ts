@@ -321,6 +321,7 @@ describe("POST /api/webhooks/stripe", () => {
       user_id: "user-1",
       class_id: "class-1",
       refund_email_sent_at: null,
+      status: "confirmed" as const,
     };
     const cls = { title: "Test Class", starts_at: "2026-01-15T10:00:00Z", price_cents: 4500 };
 
@@ -385,6 +386,7 @@ describe("POST /api/webhooks/stripe", () => {
       user_id: "user-1",
       class_id: "class-1",
       refund_email_sent_at: null,
+      status: "confirmed" as const,
     };
 
     mockFrom.mockImplementation((table: string) => {
@@ -432,6 +434,7 @@ describe("POST /api/webhooks/stripe", () => {
       user_id: "user-1",
       class_id: "class-1",
       refund_email_sent_at: "2026-01-01T00:00:00Z",
+      status: "confirmed" as const,
     };
 
     mockFrom.mockImplementation((table: string) => {
@@ -469,6 +472,69 @@ describe("POST /api/webhooks/stripe", () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
     expect(mockGetUserById).not.toHaveBeenCalled();
+  });
+
+  it("skips refund email when booking was user/class-cancelled (refund copy already sent)", async () => {
+    const booking = {
+      id: "booking-1",
+      user_id: "user-1",
+      class_id: "class-1",
+      refund_email_sent_at: null,
+      status: "cancelled" as const,
+    };
+    const cls = { title: "Test Class", starts_at: "2026-01-15T10:00:00Z", price_cents: 4500 };
+
+    let bookingsUpdatePayload: Record<string, unknown> | undefined;
+    mockFrom.mockImplementation((table: string) => {
+      const eq = vi.fn().mockResolvedValue({});
+      const update = vi.fn().mockImplementation((payload: Record<string, unknown>) => {
+        if (table === "bookings") bookingsUpdatePayload = payload;
+        return { eq };
+      });
+      if (table === "bookings") {
+        const single = vi.fn().mockResolvedValue({ data: booking, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select, update };
+      }
+      if (table === "classes") {
+        const single = vi.fn().mockResolvedValue({ data: cls, error: null });
+        const select = vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({ single }),
+        });
+        return { select };
+      }
+      if (table === "orders") return { update };
+      return { select: vi.fn(), update };
+    });
+
+    const mockGetUserById = vi.fn();
+    // Do not call makeSupabase() here — it resets mockFrom and drops mockImplementation above.
+    vi.mocked(createClient).mockReturnValue({
+      from: mockFrom,
+      auth: { admin: { getUserById: mockGetUserById } },
+    } as never);
+
+    mockConstructEvent.mockReturnValue({
+      type: "charge.refunded",
+      data: {
+        object: {
+          payment_intent: "pi_test",
+          amount: 4500,
+          amount_refunded: 4500,
+          metadata: {},
+        },
+      },
+    });
+
+    const res = await POST(makeRequest());
+    expect(res.status).toBe(200);
+    expect(mockGetUserById).not.toHaveBeenCalled();
+    expect(bookingsUpdatePayload).toMatchObject({
+      status: "refunded",
+      refund_email_sent_at: expect.any(String),
+    });
   });
 
   it("returns received: true for unhandled event types", async () => {

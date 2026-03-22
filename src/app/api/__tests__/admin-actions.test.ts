@@ -634,6 +634,7 @@ describe("refundBooking", () => {
     booking?: object | null;
     bookingError?: { message: string } | null;
     updateError?: { message: string } | null;
+    classRow?: object | null;
   } = {}) {
     const b = opts.booking ?? booking;
     const single = vi.fn();
@@ -641,10 +642,33 @@ describe("refundBooking", () => {
       .mockResolvedValueOnce({ data: { role: "admin" }, error: null })
       .mockResolvedValueOnce({ data: b, error: opts.bookingError ?? null });
 
+    const needsClassFetch =
+      b &&
+      opts.bookingError == null &&
+      opts.booking !== null &&
+      (b as { stripe_payment_intent_id?: string | null }).stripe_payment_intent_id &&
+      !["refunded", "partially_refunded"].includes((b as { status: string }).status);
+
+    if (needsClassFetch) {
+      single.mockResolvedValueOnce({
+        data:
+          opts.classRow !== undefined
+            ? opts.classRow
+            : {
+                title: "Test Class",
+                starts_at: "2026-06-06T10:00:00Z",
+                price_cents: 4500,
+              },
+        error: null,
+      });
+    }
+
     const updateEq = vi.fn().mockResolvedValue({
       data: null,
       error: opts.updateError ?? null,
     });
+
+    const mockBookingUpdate = vi.fn().mockReturnValue({ eq: updateEq });
 
     const from = vi.fn((table: string) => {
       if (table === "bookings") {
@@ -652,7 +676,7 @@ describe("refundBooking", () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({ single }),
           }),
-          update: vi.fn().mockReturnValue({ eq: updateEq }),
+          update: mockBookingUpdate,
         };
       }
       return {
@@ -665,6 +689,7 @@ describe("refundBooking", () => {
     return {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
       from,
+      mockBookingUpdate,
     };
   }
 
@@ -701,10 +726,18 @@ describe("refundBooking", () => {
     expect(result.error).toBe("This booking has already been refunded.");
   });
 
-  it("revalidates paths on success", async () => {
-    vi.mocked(createClient).mockResolvedValue(makeRefundSupabase() as never);
+  it("revalidates paths on success and stamps refund_email_sent_at", async () => {
+    const client = makeRefundSupabase();
+    vi.mocked(createClient).mockResolvedValue(client as never);
+
     const result = await refundBooking(bookingId);
     expect(result.error).toBeUndefined();
+    expect(client.mockBookingUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "refunded",
+        refund_email_sent_at: expect.any(String),
+      })
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
     expect(revalidatePath).toHaveBeenCalledWith("/bookings");
   });
