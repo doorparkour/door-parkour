@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, Calendar, ShoppingBag, LayoutGrid, TicketCheck, RotateCcw } from "lucide-react";
+import { Menu, Calendar, ShoppingBag, LayoutGrid, TicketCheck, RotateCcw, MessageSquareQuote } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ const navItems = [
   { href: "/admin/bookings", icon: TicketCheck, label: "Bookings" },
   { href: "/admin/products", icon: ShoppingBag, label: "Products" },
   { href: "/admin/refund-requests", icon: RotateCcw, label: "Refund Requests" },
+  { href: "/admin/member-feedback", icon: MessageSquareQuote, label: "Member feedback" },
 ];
 
 function AdminNav({ onNavigate }: { onNavigate?: () => void }) {

@@ -213,6 +213,38 @@ export type Database = {
           },
         ];
       };
+      member_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          message: string;
+          consent_testimonial: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          message: string;
+          consent_testimonial?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          message?: string;
+          consent_testimonial?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_feedback_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       product_variants: {
         Row: {
           id: string;
