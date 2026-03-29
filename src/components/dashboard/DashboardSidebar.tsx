@@ -25,18 +25,18 @@ export default function DashboardSidebar({
 
   return (
     <aside className={`w-60 shrink-0 border-r bg-background flex flex-col ${inSheet ? "" : "hidden lg:flex"}`}>
-      <div className="flex h-16 items-center gap-2 border-b px-5">
-        <Image
-          src="/door-parkour-logo.jpg"
-          alt="Door Parkour logo"
-          width={20}
-          height={20}
-          className="h-5 w-5 rounded-sm object-cover"
-        />
+      <div className="flex h-16 items-center border-b px-5">
         <Link
           href="/"
-          className="text-sm font-bold text-dp-teal hover:text-dp-teal-light"
+          className="flex items-center gap-2 rounded-md text-sm font-bold text-dp-teal outline-none transition-colors hover:text-dp-teal-light focus-visible:ring-2 focus-visible:ring-dp-orange focus-visible:ring-offset-2"
         >
+          <Image
+            src="/door-parkour-logo.jpg"
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5 rounded-sm object-cover"
+          />
           Door Parkour
         </Link>
       </div>
